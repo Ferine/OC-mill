@@ -6,17 +6,19 @@ OC-Mill is a production-ready Node.js/TypeScript agent that automatically genera
 
 ## 🎯 Features
 
-- **Story Generation**: 6 unique story archetypes with 8+ scenes each
+- **AI Story Generation**: Dynamic story creation using OpenAI GPT-4, or use 6 pre-built story archetypes
 - **AI Video Creation**: Integration with Kling AI text-to-video API
 - **Automated Publishing**: Direct upload to TikTok with captions and hashtags
 - **Scheduling**: Run once, multiple times, or on a schedule
 - **Production Ready**: Comprehensive error handling, logging, and configuration
+- **Flexible**: Toggle between OpenAI-generated stories and template-based stories
 
 ## 📋 Requirements
 
 - Node.js 20+
 - Kling AI API key
 - TikTok API credentials (OAuth access token)
+- OpenAI API key (optional, for dynamic story generation)
 - TypeScript
 
 ## 🚀 Quick Start
@@ -46,6 +48,11 @@ cp .env.example .env
 Edit `.env` with your credentials:
 
 ```env
+# OpenAI Configuration (Optional - for dynamic story generation)
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o
+USE_OPENAI_STORIES=true  # Set to false to use template-based stories
+
 # Kling AI Configuration
 KLING_API_KEY=your_kling_api_key_here
 KLING_BASE_URL=https://api.kling.ai
@@ -95,7 +102,9 @@ OC-mill/
 │   ├── story/
 │   │   ├── types.ts                    # Type definitions
 │   │   ├── archetypes.ts               # Story templates
-│   │   └── StoryGenerator.ts          # Story generation logic
+│   │   └── StoryGenerator.ts          # Template-based story generation
+│   ├── services/
+│   │   └── OpenAIStoryService.ts      # OpenAI story generation
 │   ├── prompt/
 │   │   └── KlingPromptBuilder.ts      # Kling prompt builder
 │   ├── clients/
@@ -117,13 +126,15 @@ OC-mill/
 
 The agent follows a 7-step workflow:
 
-1. **Generate Story**: Creates a story from one of 6 archetypes
-   - RagsToRiches
-   - FromShelterToHome
-   - StreamerCatGlowUp
-   - VillainArcButSoft
-   - ChonkToBestFriend
-   - OfficeHeroJourney
+1. **Generate Story**: Creates a unique story about a fat orange cat
+   - **Option A (OpenAI)**: Uses GPT-4 to dynamically generate creative stories based on archetypes
+   - **Option B (Templates)**: Randomly selects from 6 pre-built story archetypes:
+     - RagsToRiches
+     - FromShelterToHome
+     - StreamerCatGlowUp
+     - VillainArcButSoft
+     - ChonkToBestFriend
+     - OfficeHeroJourney
 
 2. **Build Prompt**: Converts story into detailed Kling AI prompt
 
@@ -136,6 +147,21 @@ The agent follows a 7-step workflow:
 6. **Generate Caption**: Creates TikTok caption with hashtags
 
 7. **Upload to TikTok**: Publishes video to TikTok
+
+### Story Generation Modes
+
+**OpenAI Mode** (`USE_OPENAI_STORIES=true`):
+- Generates unique, creative stories for every run
+- Uses GPT-4 to create custom scenes, dialogue, and narrative arcs
+- Leverages archetypes as creative inspiration
+- More variety and unpredictability
+- Requires OpenAI API key
+
+**Template Mode** (`USE_OPENAI_STORIES=false`):
+- Uses pre-written story templates
+- Fast and deterministic
+- No additional API costs
+- Predictable, high-quality stories
 
 ## 🎨 Story Archetypes
 
@@ -158,6 +184,20 @@ Grumpy loner reluctantly becomes best friends with new kitten.
 Office cat rises from mascot to Employee of the Month.
 
 ## 🔌 API Integration
+
+### OpenAI API (Optional)
+
+The `OpenAIStoryService` provides dynamic story generation:
+
+- GPT-4-powered story creation
+- Structured JSON output with scenes
+- Automatic retry logic
+- Scene timing optimization
+- Creative variation based on archetypes
+
+Uses OpenAI Chat Completions API with JSON mode for structured story output.
+
+**Reference**: [OpenAI API Documentation](https://platform.openai.com/docs/api-reference)
 
 ### Kling AI API
 
@@ -191,6 +231,9 @@ All settings are managed via environment variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
+| `OPENAI_API_KEY` | OpenAI API key | (optional) |
+| `OPENAI_MODEL` | OpenAI model to use | `gpt-4o` |
+| `USE_OPENAI_STORIES` | Enable OpenAI story generation | `true` |
 | `KLING_API_KEY` | Kling AI API key | (required) |
 | `KLING_BASE_URL` | Kling API base URL | `https://api.kling.ai` |
 | `TIKTOK_API_KEY` | TikTok OAuth token | (required) |

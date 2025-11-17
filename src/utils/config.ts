@@ -9,6 +9,11 @@ dotenv.config();
  * All values loaded from environment variables with sensible defaults
  */
 export interface Config {
+  openai: {
+    apiKey: string;
+    model: string;
+    useForStories: boolean;
+  };
   kling: {
     apiKey: string;
     baseUrl: string;
@@ -39,6 +44,13 @@ export interface Config {
  */
 function validateEnv(): void {
   const required = ['KLING_API_KEY', 'TIKTOK_API_KEY'];
+
+  // If using OpenAI for stories, require the API key
+  const useOpenAI = process.env.USE_OPENAI_STORIES === 'true';
+  if (useOpenAI) {
+    required.push('OPENAI_API_KEY');
+  }
+
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
@@ -56,6 +68,11 @@ export function loadConfig(): Config {
   validateEnv();
 
   const config: Config = {
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY || '',
+      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      useForStories: process.env.USE_OPENAI_STORIES === 'true',
+    },
     kling: {
       apiKey: process.env.KLING_API_KEY!,
       baseUrl: process.env.KLING_BASE_URL || 'https://api.kling.ai',
@@ -90,6 +107,8 @@ export function loadConfig(): Config {
   };
 
   logger.info('Configuration loaded successfully', {
+    useOpenAI: config.openai.useForStories,
+    openaiModel: config.openai.model,
     klingBaseUrl: config.kling.baseUrl,
     tiktokBaseUrl: config.tiktok.baseUrl,
     videoDuration: config.kling.videoDurationSeconds,

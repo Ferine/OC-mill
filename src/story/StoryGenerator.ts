@@ -54,8 +54,7 @@ export class StoryGenerator {
   private createScenesWithTiming(archetype: ArchetypeTemplate): Scene[] {
     const sceneCount = archetype.sceneTemplates.length;
 
-    // Calculate duration per scene, with some variation
-    const baseDuration = Math.floor(this.targetDuration / sceneCount);
+    // Distribute duration across scenes with variation
     const durations = this.distributeDuration(sceneCount, this.targetDuration);
 
     return archetype.sceneTemplates.map((template, index) => ({

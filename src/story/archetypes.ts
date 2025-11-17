@@ -1,5 +1,8 @@
 import { ArchetypeTemplate } from './types';
 
+// Re-export ArchetypeTemplate for convenience
+export type { ArchetypeTemplate } from './types';
+
 /**
  * Pre-defined story archetype templates
  * Each template contains the structure for a complete story arc

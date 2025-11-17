@@ -157,7 +157,7 @@ export class TikTokClient {
       );
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
 
     logger.info('Upload initialized', {
       uploadId: data.data?.upload_id,
@@ -247,7 +247,7 @@ export class TikTokClient {
       );
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as any;
 
     // TikTok API response structure varies, handle both formats
     const publishInfo = data.data || data;

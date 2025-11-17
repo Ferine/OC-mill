@@ -3,6 +3,7 @@ import { KlingPromptBuilder } from '../prompt/KlingPromptBuilder';
 import { KlingClient } from '../clients/KlingClient';
 import { TikTokClient } from '../clients/TikTokClient';
 import { CaptionGenerator } from '../caption/CaptionGenerator';
+import { OpenAIStoryService } from '../services/OpenAIStoryService';
 import { Config } from '../utils/config';
 import { logger } from '../utils/logger';
 import { Story } from '../story/types';
@@ -37,6 +38,7 @@ export interface AgentRunResult {
  */
 export class OrangeCatAgent {
   private storyGenerator: StoryGenerator;
+  private openaiStoryService?: OpenAIStoryService;
   private promptBuilder: KlingPromptBuilder;
   private klingClient: KlingClient;
   private tiktokClient: TikTokClient;
@@ -50,6 +52,19 @@ export class OrangeCatAgent {
     this.storyGenerator = new StoryGenerator(
       config.kling.videoDurationSeconds
     );
+
+    // Initialize OpenAI service if enabled
+    if (config.openai.useForStories && config.openai.apiKey) {
+      this.openaiStoryService = new OpenAIStoryService(
+        config.openai.apiKey,
+        config.openai.model,
+        config.kling.videoDurationSeconds
+      );
+      logger.info('OpenAI story generation enabled', {
+        model: config.openai.model,
+      });
+    }
+
     this.promptBuilder = new KlingPromptBuilder();
     this.klingClient = new KlingClient({
       apiKey: config.kling.apiKey,
@@ -64,6 +79,7 @@ export class OrangeCatAgent {
     this.captionGenerator = new CaptionGenerator();
 
     logger.info('OrangeCatAgent initialized', {
+      useOpenAI: !!this.openaiStoryService,
       videoDuration: config.kling.videoDurationSeconds,
       downloadPath: config.video.downloadPath,
     });
@@ -80,11 +96,21 @@ export class OrangeCatAgent {
     try {
       // Step 1: Generate story
       logger.info('📖 Step 1/7: Generating story');
-      const story = this.storyGenerator.generateStory();
+      let story: Story;
+
+      if (this.openaiStoryService) {
+        logger.info('Using OpenAI to generate story');
+        story = await this.openaiStoryService.generateStoryWithRetry();
+      } else {
+        logger.info('Using template-based story generation');
+        story = this.storyGenerator.generateStory();
+      }
+
       logger.info('Story generated', {
         archetype: story.archetype,
         title: story.title,
         scenes: story.scenes.length,
+        generatedBy: this.openaiStoryService ? 'OpenAI' : 'Templates',
       });
 
       // Step 2: Build Kling prompt
@@ -251,7 +277,16 @@ export class OrangeCatAgent {
   }> {
     logger.info('🧪 Running dry run (no API calls)');
 
-    const story = this.storyGenerator.generateStory();
+    let story: Story;
+
+    if (this.openaiStoryService) {
+      logger.info('Generating story with OpenAI');
+      story = await this.openaiStoryService.generateStoryWithRetry();
+    } else {
+      logger.info('Generating story with templates');
+      story = this.storyGenerator.generateStory();
+    }
+
     const prompt = this.promptBuilder.buildPrompt(story);
     const caption = this.captionGenerator.generateCaption(story);
 
@@ -260,6 +295,7 @@ export class OrangeCatAgent {
       title: story.title,
       promptLength: prompt.length,
       captionLength: caption.length,
+      generatedBy: this.openaiStoryService ? 'OpenAI' : 'Templates',
     });
 
     // Log the outputs for inspection
