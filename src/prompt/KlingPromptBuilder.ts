@@ -1,4 +1,4 @@
-import { Story, Scene } from '../story/types';
+import { Story } from '../story/types';
 import { logger } from '../utils/logger';
 
 /**
@@ -8,6 +8,7 @@ import { logger } from '../utils/logger';
 export class KlingPromptBuilder {
   /**
    * Build a complete Kling-compatible prompt from a story
+   * Format optimized for TikTok-style vertical videos with clear scene structure
    */
   public buildPrompt(story: Story): string {
     logger.info('Building Kling prompt', {
@@ -15,119 +16,43 @@ export class KlingPromptBuilder {
       sceneCount: story.scenes.length,
     });
 
-    const sections = [
-      this.buildHeader(story),
-      this.buildCharacterDescription(),
-      this.buildSceneSequence(story.scenes),
-      this.buildVisualStyle(),
-      this.buildAudioDescription(story.musicStyle),
-      this.buildTechnicalSpecs(story.totalDurationSeconds),
-    ];
-
-    const fullPrompt = sections.filter(Boolean).join('\n\n');
+    // Build a compact, example-style prompt similar to successful TikTok video prompts
+    const prompt = this.buildCompactPrompt(story);
 
     logger.debug('Prompt built successfully', {
-      promptLength: fullPrompt.length,
+      promptLength: prompt.length,
       archetype: story.archetype,
     });
 
-    return fullPrompt;
+    return prompt;
   }
 
   /**
-   * Build the prompt header with overall narrative
+   * Build a compact, TikTok-optimized prompt
    */
-  private buildHeader(story: Story): string {
-    return `Create a vertical 9:16 TikTok-style video story: "${story.title}"
+  private buildCompactPrompt(story: Story): string {
+    const sceneDescriptions = story.scenes
+      .map((scene, index) => {
+        return `– Scene ${index + 1} (${scene.durationSeconds}s): ${scene.environment}. ${scene.catAction}. ${scene.cameraMotion}. Subtitle: "${scene.subtitleText}"`;
+      })
+      .join('\n');
 
-NARRATIVE: ${story.narrative}
-OVERALL MOOD: ${story.overallMood}
-TARGET DURATION: ${story.totalDurationSeconds} seconds`;
-  }
+    return `Vertical 9:16 TikTok-style video, ${story.totalDurationSeconds} seconds.
 
-  /**
-   * Build detailed character description
-   */
-  private buildCharacterDescription(): string {
-    return `MAIN CHARACTER:
-An extremely chubby orange tabby cat with:
-- Distinctly fat, round body with prominent belly
-- Bright orange and white striped fur
-- Large, expressive eyes (amber or green)
-- Pink nose and toe beans
-- Soft, fluffy appearance
-- Endearing, slightly grumpy facial expression
-- Notable waddle when walking due to size
-- Highly food-motivated personality
-- Range of expressions from grumpy to content to mischievous`;
-  }
+MAIN CHARACTER: Extremely chubby orange tabby cat with big shiny expressive eyes (often teary or sparkling), bright orange and white striped fur, prominent belly, adorable waddle.
 
-  /**
-   * Build the detailed scene sequence
-   */
-  private buildSceneSequence(scenes: Scene[]): string {
-    const sceneDescriptions = scenes
-      .map((scene, index) => this.buildSceneDescription(scene, index + 1))
-      .join('\n\n');
+STORY: ${story.narrative} (${story.archetype} archetype)
 
-    return `SCENE SEQUENCE (${scenes.length} scenes):
+SCENES (${story.scenes.length} total):
+${sceneDescriptions}
 
-${sceneDescriptions}`;
-  }
+VISUAL STYLE: Cinematic quality with anime-style or realistic rendering. Soft, warm lighting with dramatic emphasis. Vibrant but natural colors. Smooth transitions between scenes (fades, dissolves, match cuts). Focus on cat's expressive face and body language. Shallow depth of field for emotional scenes.
 
-  /**
-   * Build description for a single scene
-   */
-  private buildSceneDescription(scene: Scene, sceneNumber: number): string {
-    return `Scene ${sceneNumber} (${scene.durationSeconds}s):
-SETTING: ${scene.environment}
-ACTION: ${scene.catAction}
-CAMERA: ${scene.cameraMotion}
-MOOD: ${scene.mood}
-SUBTITLE: "${scene.subtitleText}"
-DESCRIPTION: ${scene.description}`;
-  }
+SUBTITLES: Meme-style text overlays (white text, black outline) positioned at bottom of screen. Short, punchy, emotionally resonant.
 
-  /**
-   * Build visual style guidelines
-   */
-  private buildVisualStyle(): string {
-    return `VISUAL STYLE:
-- Cinematic quality with soft, warm lighting
-- Shallow depth of field for emotional scenes
-- Vibrant but natural colors
-- Smooth transitions between scenes (fades, dissolves, or match cuts)
-- Meme-style text overlays for subtitles (white text, black outline, top or bottom placement)
-- Focus on cat's expressive face and body language
-- Vertical 9:16 aspect ratio optimized for mobile viewing
-- TikTok-friendly framing with subject centered in safe zone`;
-  }
+AUDIO: ${story.musicStyle}. Audio mixed to support emotional arc with volume changes matching scene transitions.
 
-  /**
-   * Build audio/music description
-   */
-  private buildAudioDescription(musicStyle: string): string {
-    return `AUDIO & MUSIC:
-- Background music: ${musicStyle}
-- Music should match the emotional arc of the story
-- Subtle sound effects where appropriate (purring, meowing, ambient sounds)
-- Audio should build emotional engagement
-- Volume mixed to support but not overpower the visual narrative`;
-  }
-
-  /**
-   * Build technical specifications
-   */
-  private buildTechnicalSpecs(duration: number): string {
-    return `TECHNICAL REQUIREMENTS:
-- Aspect ratio: 9:16 (vertical/portrait)
-- Duration: ${duration} seconds (approximately)
-- Frame rate: 24-30 fps
-- Resolution: 1080x1920 minimum
-- Format: MP4 (H.264)
-- Optimized for TikTok upload
-- Include text overlays as burned-in subtitles
-- Maintain consistent character appearance throughout all scenes`;
+TECHNICAL: 9:16 vertical aspect ratio, ${story.totalDurationSeconds} seconds duration, 24-30fps, 1080x1920 minimum resolution, MP4 format (H.264), optimized for TikTok. Text overlays burned into video. Consistent cat appearance throughout.`;
   }
 
   /**
