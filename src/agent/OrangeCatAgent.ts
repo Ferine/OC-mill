@@ -4,6 +4,9 @@ import { KlingClient } from '../clients/KlingClient';
 import { TikTokClient } from '../clients/TikTokClient';
 import { CaptionGenerator } from '../caption/CaptionGenerator';
 import { OpenAIStoryService } from '../services/OpenAIStoryService';
+import { VideoValidator } from '../services/VideoValidator';
+import { StatisticsTracker } from '../services/StatisticsTracker';
+import { APIRateLimiters } from '../utils/RateLimiter';
 import { Config } from '../utils/config';
 import { logger } from '../utils/logger';
 import { Story } from '../story/types';
@@ -18,6 +21,8 @@ export interface AgentRunResult {
   story: Story;
   klingJobId: string;
   videoPath: string;
+  videoValid?: boolean;
+  videoSizeBytes?: number;
   tiktokPostId?: string;
   tiktokShareUrl?: string;
   error?: string;
@@ -43,6 +48,9 @@ export class OrangeCatAgent {
   private klingClient: KlingClient;
   private tiktokClient: TikTokClient;
   private captionGenerator: CaptionGenerator;
+  private videoValidator: VideoValidator;
+  private statisticsTracker: StatisticsTracker;
+  private rateLimiters: APIRateLimiters;
   private config: Config;
 
   constructor(config: Config) {
@@ -77,12 +85,26 @@ export class OrangeCatAgent {
       baseUrl: config.tiktok.baseUrl,
     });
     this.captionGenerator = new CaptionGenerator();
+    this.videoValidator = new VideoValidator(config.kling.videoDurationSeconds);
+    this.statisticsTracker = new StatisticsTracker();
+    this.rateLimiters = new APIRateLimiters();
 
     logger.info('OrangeCatAgent initialized', {
       useOpenAI: !!this.openaiStoryService,
       videoDuration: config.kling.videoDurationSeconds,
       downloadPath: config.video.downloadPath,
+      videoValidation: true,
+      statisticsTracking: true,
+      rateLimiting: true,
     });
+  }
+
+  /**
+   * Initialize the agent (async initialization)
+   */
+  public async initialize(): Promise<void> {
+    await this.statisticsTracker.initialize();
+    logger.info('OrangeCatAgent fully initialized');
   }
 
   /**
@@ -93,13 +115,18 @@ export class OrangeCatAgent {
 
     logger.info('🚀 Starting OrangeCatAgent workflow');
 
+    let story: Story | undefined;
+    let klingJobId = '';
+    let videoPath = '';
+    let videoSizeBytes: number | undefined;
+
     try {
-      // Step 1: Generate story
-      logger.info('📖 Step 1/7: Generating story');
-      let story: Story;
+      // Step 1: Generate story (with rate limiting for OpenAI)
+      logger.info('📖 Step 1/8: Generating story');
 
       if (this.openaiStoryService) {
         logger.info('Using OpenAI to generate story');
+        await this.rateLimiters.openai.consume('story-generation');
         story = await this.openaiStoryService.generateStoryWithRetry();
       } else {
         logger.info('Using template-based story generation');
@@ -114,14 +141,15 @@ export class OrangeCatAgent {
       });
 
       // Step 2: Build Kling prompt
-      logger.info('✍️  Step 2/7: Building Kling prompt');
+      logger.info('✍️  Step 2/8: Building Kling prompt');
       const prompt = this.promptBuilder.buildPrompt(story);
       const promptStats = this.promptBuilder.getPromptStats(prompt);
       logger.info('Prompt built', promptStats);
 
-      // Step 3: Create video with Kling
-      logger.info('🎬 Step 3/7: Creating video with Kling AI');
-      const klingJobId = await this.klingClient.createVideo(prompt, {
+      // Step 3: Create video with Kling (with rate limiting)
+      logger.info('🎬 Step 3/8: Creating video with Kling AI');
+      await this.rateLimiters.kling.consume('video-creation');
+      klingJobId = await this.klingClient.createVideo(prompt, {
         aspectRatio: this.config.kling.aspectRatio,
         durationSeconds: this.config.kling.videoDurationSeconds,
         quality: 'high',
@@ -129,17 +157,39 @@ export class OrangeCatAgent {
       logger.info('Video creation job started', { klingJobId });
 
       // Step 4: Poll until video ready
-      logger.info('⏳ Step 4/7: Waiting for video generation to complete');
+      logger.info('⏳ Step 4/8: Waiting for video generation to complete');
       const videoUrl = await this.klingClient.waitForCompletion(klingJobId);
       logger.info('Video generation completed', { videoUrl });
 
       // Step 5: Download video
-      logger.info('💾 Step 5/7: Downloading video');
-      const videoPath = await this.downloadVideo(klingJobId, videoUrl);
+      logger.info('💾 Step 5/8: Downloading video');
+      videoPath = await this.downloadVideo(klingJobId, videoUrl);
       logger.info('Video downloaded', { videoPath });
 
+      // Step 5.5: Validate video
+      logger.info('✔️  Step 5.5/8: Validating video');
+      const validationResult = await this.videoValidator.validateVideo(videoPath);
+      videoSizeBytes = validationResult.metadata.sizeBytes;
+
+      if (!validationResult.valid) {
+        const summary = this.videoValidator.getValidationSummary(validationResult);
+        logger.error('Video validation failed', { summary });
+        throw new Error(`Video validation failed: ${validationResult.errors.join(', ')}`);
+      }
+
+      if (validationResult.warnings.length > 0) {
+        logger.warn('Video validation warnings', {
+          warnings: validationResult.warnings,
+        });
+      }
+
+      logger.info('Video validated successfully', {
+        sizeBytes: validationResult.metadata.sizeBytes,
+        sizeMB: validationResult.metadata.sizeMB,
+      });
+
       // Step 6: Generate caption
-      logger.info('📝 Step 6/7: Generating TikTok caption');
+      logger.info('📝 Step 6/8: Generating TikTok caption');
       const caption = this.captionGenerator.generateCaption(story);
       const captionValidation = this.captionGenerator.validateCaption(caption);
 
@@ -159,8 +209,9 @@ export class OrangeCatAgent {
         valid: captionValidation.valid,
       });
 
-      // Step 7: Upload to TikTok
-      logger.info('📤 Step 7/7: Uploading to TikTok');
+      // Step 7: Upload to TikTok (with rate limiting)
+      logger.info('📤 Step 7/8: Uploading to TikTok');
+      await this.rateLimiters.tiktok.consume('video-upload');
       const tiktokResult = await this.tiktokClient.uploadVideo({
         filePath: videoPath,
         caption,
@@ -175,6 +226,21 @@ export class OrangeCatAgent {
 
       const duration = Date.now() - startTime;
 
+      // Step 8: Record statistics
+      logger.info('📊 Step 8/8: Recording statistics');
+      await this.statisticsTracker.recordRun({
+        timestamp: new Date().toISOString(),
+        success: true,
+        archetype: story.archetype,
+        storyGenerationMethod: this.openaiStoryService ? 'OpenAI' : 'Templates',
+        duration,
+        klingJobId,
+        tiktokPostId: tiktokResult.postId,
+        tiktokShareUrl: tiktokResult.shareUrl,
+        videoSize: videoSizeBytes,
+        sceneCount: story.scenes.length,
+      });
+
       logger.info('✅ OrangeCatAgent workflow completed successfully', {
         durationMs: duration,
         durationMinutes: (duration / 60000).toFixed(2),
@@ -187,25 +253,44 @@ export class OrangeCatAgent {
         story,
         klingJobId,
         videoPath,
+        videoValid: true,
+        videoSizeBytes,
         tiktokPostId: tiktokResult.postId,
         tiktokShareUrl: tiktokResult.shareUrl,
         duration,
       };
     } catch (error) {
       const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
 
       logger.error('❌ OrangeCatAgent workflow failed', {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
         stack: error instanceof Error ? error.stack : undefined,
         durationMs: duration,
       });
 
+      // Record failed run in statistics
+      if (story) {
+        await this.statisticsTracker.recordRun({
+          timestamp: new Date().toISOString(),
+          success: false,
+          archetype: story.archetype,
+          storyGenerationMethod: this.openaiStoryService ? 'OpenAI' : 'Templates',
+          duration,
+          klingJobId,
+          error: errorMessage,
+          videoSize: videoSizeBytes,
+          sceneCount: story.scenes.length,
+        });
+      }
+
       return {
         success: false,
-        story: this.storyGenerator.generateStory(), // Return a placeholder
-        klingJobId: '',
-        videoPath: '',
-        error: error instanceof Error ? error.message : String(error),
+        story: story || this.storyGenerator.generateStory(), // Return actual story or placeholder
+        klingJobId,
+        videoPath,
+        videoSizeBytes,
+        error: errorMessage,
         duration,
       };
     }
@@ -329,5 +414,27 @@ export class OrangeCatAgent {
       config: this.config,
       componentsInitialized: true,
     };
+  }
+
+  /**
+   * Get statistics report
+   */
+  public getStatisticsReport(): string {
+    return this.statisticsTracker.getFormattedReport();
+  }
+
+  /**
+   * Get statistics tracker (for detailed access)
+   */
+  public getStatistics() {
+    return this.statisticsTracker;
+  }
+
+  /**
+   * Cleanup and shutdown
+   */
+  public shutdown(): void {
+    this.rateLimiters.stopAll();
+    logger.info('OrangeCatAgent shutdown');
   }
 }

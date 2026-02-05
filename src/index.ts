@@ -8,19 +8,25 @@ import { logger } from './utils/logger';
  * Main entry point for the OC-mill agent
  *
  * Usage:
- *   npm start           - Run once
- *   npm start -- --dry  - Dry run (no API calls)
- *   npm start -- --loop - Run continuously with scheduling
+ *   npm start              - Run once
+ *   npm start -- --dry     - Dry run (no API calls)
+ *   npm start -- --stats   - Show statistics
+ *   npm start -- --count N - Run N times
+ *   npm start -- --loop    - Run continuously with scheduling
  */
 
 /**
  * Parse command line arguments
  */
 function parseArgs(): {
-  mode: 'once' | 'dry' | 'loop';
+  mode: 'once' | 'dry' | 'loop' | 'stats';
   count?: number;
 } {
   const args = process.argv.slice(2);
+
+  if (args.includes('--stats') || args.includes('-s')) {
+    return { mode: 'stats' };
+  }
 
   if (args.includes('--dry') || args.includes('-d')) {
     return { mode: 'dry' };
@@ -105,6 +111,18 @@ async function runDry(agent: OrangeCatAgent): Promise<void> {
 }
 
 /**
+ * Show statistics
+ */
+async function showStats(agent: OrangeCatAgent): Promise<void> {
+  logger.info('Displaying statistics');
+
+  const report = agent.getStatisticsReport();
+  console.log('\n' + report);
+
+  console.log('\nFor detailed statistics, check logs/statistics.json');
+}
+
+/**
  * Run agent in loop mode with scheduling
  */
 async function runLoop(agent: OrangeCatAgent): Promise<void> {
@@ -166,6 +184,7 @@ async function main(): Promise<void> {
 
     // Initialize agent
     const agent = new OrangeCatAgent(config);
+    await agent.initialize();
 
     // Parse arguments and run
     const { mode, count } = parseArgs();
@@ -173,6 +192,10 @@ async function main(): Promise<void> {
     logger.info('Running in mode', { mode, count });
 
     switch (mode) {
+      case 'stats':
+        await showStats(agent);
+        break;
+
       case 'dry':
         await runDry(agent);
         break;
@@ -190,6 +213,9 @@ async function main(): Promise<void> {
         }
         break;
     }
+
+    // Cleanup
+    agent.shutdown();
 
     logger.info('Application finished successfully');
   } catch (error) {

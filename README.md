@@ -12,6 +12,9 @@ OC-Mill is a production-ready Node.js/TypeScript agent that automatically genera
 - **Scheduling**: Run once, multiple times, or on a schedule
 - **Production Ready**: Comprehensive error handling, logging, and configuration
 - **Flexible**: Toggle between OpenAI-generated stories and template-based stories
+- **Video Validation**: Automatic validation of generated videos before upload (file size, format, readability)
+- **Statistics Tracking**: Performance metrics and success tracking with detailed reports
+- **Rate Limiting**: Token bucket rate limiting to protect against API rate limit violations
 
 ## 📋 Requirements
 
@@ -90,6 +93,9 @@ npm start -- --count 3
 
 # Run continuously on schedule
 npm start -- --loop
+
+# View statistics and performance metrics
+npm start -- --stats
 ```
 
 ## 📁 Project Structure
@@ -104,7 +110,9 @@ OC-mill/
 │   │   ├── archetypes.ts               # Story templates
 │   │   └── StoryGenerator.ts          # Template-based story generation
 │   ├── services/
-│   │   └── OpenAIStoryService.ts      # OpenAI story generation
+│   │   ├── OpenAIStoryService.ts      # OpenAI story generation
+│   │   ├── VideoValidator.ts          # Video validation service
+│   │   └── StatisticsTracker.ts       # Performance metrics tracking
 │   ├── prompt/
 │   │   └── KlingPromptBuilder.ts      # Kling prompt builder
 │   ├── clients/
@@ -114,8 +122,13 @@ OC-mill/
 │   │   └── CaptionGenerator.ts        # TikTok caption generator
 │   ├── utils/
 │   │   ├── logger.ts                  # Winston logger
-│   │   └── config.ts                  # Configuration management
+│   │   ├── config.ts                  # Configuration management
+│   │   └── RateLimiter.ts             # API rate limiting
 │   └── index.ts                        # Entry point
+├── logs/
+│   ├── combined.log                    # All logs
+│   ├── error.log                       # Error logs
+│   └── statistics.json                 # Performance statistics
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
@@ -124,9 +137,9 @@ OC-mill/
 
 ## 🎬 How It Works
 
-The agent follows a 7-step workflow:
+The agent follows an 8-step production workflow:
 
-1. **Generate Story**: Creates a unique story about a fat orange cat
+1. **Generate Story** (with rate limiting): Creates a unique story about a fat orange cat
    - **Option A (OpenAI)**: Uses GPT-4 to dynamically generate creative stories based on archetypes
    - **Option B (Templates)**: Randomly selects from 6 pre-built story archetypes:
      - RagsToRiches
@@ -136,17 +149,21 @@ The agent follows a 7-step workflow:
      - ChonkToBestFriend
      - OfficeHeroJourney
 
-2. **Build Prompt**: Converts story into detailed Kling AI prompt
+2. **Build Prompt**: Converts story into detailed Kling AI prompt optimized for TikTok vertical format
 
-3. **Create Video**: Calls Kling API to start video generation
+3. **Create Video** (with rate limiting): Calls Kling API to start video generation
 
 4. **Poll Status**: Waits for video completion with exponential backoff
 
 5. **Download Video**: Downloads finished video to local storage
 
-6. **Generate Caption**: Creates TikTok caption with hashtags
+6. **Validate Video**: Checks file integrity, size, format, and readability before upload
 
-7. **Upload to TikTok**: Publishes video to TikTok
+7. **Generate Caption**: Creates TikTok caption with hashtags based on story mood
+
+8. **Upload to TikTok** (with rate limiting): Publishes video to TikTok
+
+9. **Record Statistics**: Tracks performance metrics, success rate, and run details
 
 ### Story Generation Modes
 
@@ -321,13 +338,34 @@ npm start -- --loop
 
 Configure interval via `RUN_INTERVAL_HOURS` in `.env`.
 
+### View Statistics
+
+View detailed performance metrics and success rates:
+
+```bash
+npm start -- --stats
+```
+
+This displays:
+- Total runs (successful/failed)
+- Success rate
+- Average duration
+- Story generation method breakdown
+- Archetype distribution
+- Recent runs with timestamps
+
+Statistics are persisted to `logs/statistics.json`.
+
 ## 🔒 Security Notes
 
 - Never commit `.env` file
 - Store API keys securely
 - Use environment variables in production
-- Implement rate limiting if running frequently
-- Monitor API usage and costs
+- **Built-in rate limiting** protects against API rate limit violations:
+  - OpenAI: 10 tokens, refills at 0.5/sec (30/min)
+  - Kling: 5 tokens, refills at 0.1/sec (6/min)
+  - TikTok: 10 tokens, refills at 0.2/sec (12/min)
+- Monitor API usage and costs via `--stats` command
 
 ## 🐛 Troubleshooting
 
@@ -347,17 +385,66 @@ Increase `MAX_POLL_ATTEMPTS` or `POLL_INTERVAL_MS` in `.env`.
 
 ### API rate limiting
 
-- Add delays between runs
-- Reduce batch size
-- Implement exponential backoff (already included in polling)
+The agent includes **built-in token bucket rate limiting** for all APIs:
+- Automatically waits when rate limits are approached
+- No manual intervention needed
+- Logs wait times when rate limiting is active
+
+If you need to adjust limits, modify `src/utils/RateLimiter.ts`:
+```typescript
+this.openai = new RateLimiter(maxTokens, refillRate);
+```
+
+### Video validation failures
+
+If video validation fails, check:
+- File size is between 500KB and 500MB
+- Video file is readable and not corrupted
+- File has `.mp4` extension
+- Generated video matches expected duration
 
 ## 📊 Monitoring
 
-Logs are stored in `logs/`:
-- `combined.log` - All logs
-- `error.log` - Error logs only
+The agent provides comprehensive monitoring capabilities:
 
-Monitor these files for production deployments.
+### Logs
+
+Stored in `logs/` directory:
+- `combined.log` - All logs with timestamps
+- `error.log` - Error logs only
+- `statistics.json` - Performance metrics and run history
+
+### Statistics Tracking
+
+Automatically tracks:
+- **Success/failure rates** for each run
+- **Story generation method** (OpenAI vs Templates)
+- **Archetype distribution** across runs
+- **Video sizes** and validation results
+- **Run duration** and performance metrics
+- **TikTok post IDs** and share URLs
+
+View statistics with:
+```bash
+npm start -- --stats
+```
+
+### Video Validation
+
+Each video is validated before upload:
+- ✓ File exists and is readable
+- ✓ File size within limits (500KB - 500MB)
+- ✓ Correct format (.mp4)
+- ✓ Size appropriate for duration
+- ⚠ Warnings for unusual file sizes
+
+### Production Monitoring
+
+For production deployments, monitor:
+1. `logs/error.log` for failures
+2. `logs/statistics.json` for success rates
+3. API rate limiting messages in logs
+4. Video validation failures
 
 ## 🚀 Production Deployment
 
