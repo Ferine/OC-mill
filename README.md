@@ -4,6 +4,27 @@
 
 OC-Mill is a production-ready Node.js/TypeScript agent that automatically generates, produces, and publishes vertical video stories about a chubby orange cat to TikTok.
 
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Requirements](#-requirements)
+- [Quick Start](#-quick-start)
+- [Architecture Overview](#-architecture-overview)
+- [Project Structure](#-project-structure)
+- [How It Works](#-how-it-works)
+- [TikTok Video Format](#-tiktok-video-format)
+- [Story Archetypes](#-story-archetypes)
+- [API Integration](#-api-integration)
+- [API Setup Guide](#-api-setup-guide)
+- [Configuration](#-configuration)
+- [Usage Examples](#-usage-examples)
+- [Cost Estimation](#-cost-estimation)
+- [Monitoring](#-monitoring)
+- [Production Deployment](#-production-deployment)
+- [Troubleshooting](#-troubleshooting)
+- [FAQ](#-faq)
+- [Contributing](#-contributing)
+
 ## 🎯 Features
 
 - **AI Story Generation**: Dynamic story creation using OpenAI GPT-4, or use 6 pre-built story archetypes
@@ -98,6 +119,61 @@ npm start -- --loop
 npm start -- --stats
 ```
 
+## 🏗️ Architecture Overview
+
+OC-Mill follows a clean, modular architecture with separation of concerns:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     OrangeCatAgent                          │
+│                   (Main Orchestrator)                       │
+└─────────────────────────────────────────────────────────────┘
+                             │
+      ┌──────────────────────┼──────────────────────┐
+      │                      │                      │
+      ▼                      ▼                      ▼
+┌──────────┐          ┌──────────┐          ┌──────────┐
+│  Story   │          │  Video   │          │ TikTok   │
+│Generation│          │Generation│          │Publishing│
+└──────────┘          └──────────┘          └──────────┘
+      │                      │                      │
+      ▼                      ▼                      ▼
+┌──────────┐          ┌──────────┐          ┌──────────┐
+│ OpenAI/  │          │  Kling   │          │ TikTok   │
+│Templates │────────▶ │  Client  │────────▶ │  Client  │
+└──────────┘          └──────────┘          └──────────┘
+      │                      │                      │
+      └──────────────────────┴──────────────────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │ Cross-Cutting   │
+                    │   Concerns      │
+                    ├─────────────────┤
+                    │ • Rate Limiting │
+                    │ • Validation    │
+                    │ • Statistics    │
+                    │ • Logging       │
+                    └─────────────────┘
+```
+
+### Key Design Patterns
+
+- **Service Layer Pattern**: Business logic separated into focused services (`OpenAIStoryService`, `VideoValidator`, `StatisticsTracker`)
+- **Client Pattern**: API interactions encapsulated in dedicated clients (`KlingClient`, `TikTokClient`)
+- **Builder Pattern**: `KlingPromptBuilder` constructs complex prompts from story data
+- **Strategy Pattern**: Toggle between OpenAI and template-based story generation
+- **Token Bucket Algorithm**: Rate limiting implementation prevents API throttling
+
+### Technology Stack
+
+- **Runtime**: Node.js 20+ with TypeScript (strict mode)
+- **APIs**: OpenAI GPT-4, Kling AI, TikTok Content Posting API
+- **Logging**: Winston with file and console transports
+- **Configuration**: dotenv for environment management
+- **HTTP Client**: node-fetch for API requests
+- **File Operations**: Native Node.js fs/promises
+
 ## 📁 Project Structure
 
 ```
@@ -165,6 +241,27 @@ The agent follows an 8-step production workflow:
 
 9. **Record Statistics**: Tracks performance metrics, success rate, and run details
 
+### Example Run Output
+
+```
+[2026-02-18T10:30:00.000Z] INFO: Starting OC-Mill agent run #1
+[2026-02-18T10:30:00.123Z] INFO: Generating story using OpenAI (archetype: StreamerCatGlowUp)
+[2026-02-18T10:30:05.456Z] INFO: Story generated: "The Accidental Influencer" (8 scenes, 58s)
+[2026-02-18T10:30:05.500Z] INFO: Building Kling prompt (compact format, 9:16 vertical)
+[2026-02-18T10:30:05.678Z] INFO: Creating video with Kling AI
+[2026-02-18T10:30:06.123Z] INFO: Video job created: kling-job-abc123
+[2026-02-18T10:30:06.124Z] INFO: Polling for video completion...
+[2026-02-18T10:35:30.456Z] INFO: Video ready! Downloading...
+[2026-02-18T10:35:45.789Z] INFO: Video downloaded: /tmp/oc-mill-videos/video-abc123.mp4 (42.3 MB)
+[2026-02-18T10:35:45.890Z] INFO: Validating video...
+[2026-02-18T10:35:46.012Z] INFO: ✓ Video validation passed
+[2026-02-18T10:35:46.100Z] INFO: Generating TikTok caption (mood: funny)
+[2026-02-18T10:35:46.234Z] INFO: Uploading to TikTok...
+[2026-02-18T10:36:15.678Z] INFO: ✓ Video published successfully!
+[2026-02-18T10:36:15.700Z] INFO: TikTok Post ID: 7234567890123456
+[2026-02-18T10:36:15.701Z] INFO: Run completed in 6m 15s
+```
+
 ### Story Generation Modes
 
 **OpenAI Mode** (`USE_OPENAI_STORIES=true`):
@@ -179,6 +276,57 @@ The agent follows an 8-step production workflow:
 - Fast and deterministic
 - No additional API costs
 - Predictable, high-quality stories
+
+## 📱 TikTok Video Format
+
+OC-Mill generates videos optimized for maximum TikTok engagement:
+
+### Video Specifications
+- **Aspect Ratio**: 9:16 (vertical, 1080x1920)
+- **Duration**: 55-60 seconds (optimal for TikTok algorithm)
+- **Format**: MP4, H.264 codec
+- **Frame Rate**: 30 FPS
+- **File Size**: Typically 20-80 MB
+
+### Viral Story Structure (6-10 Scenes)
+
+Stories follow a proven emotional arc for maximum retention:
+
+1. **Hook (5-8s)**: Immediate attention grab
+   - Example: *"POV: You're the shelter cat nobody wanted for 156 days"*
+   - Visual: Close-up of orange cat with sad eyes
+
+2. **Establish Problem (5-8s)**: Set up the conflict
+   - Example: *"Every day, families walked past his cage"*
+   - Visual: Families looking at other cats
+
+3. **Escalation (5-8s)**: Deepen the tension
+   - Example: *"His best friend got adopted. He was alone."*
+   - Visual: Empty cage next to him
+
+4. **Turning Point (8-10s)**: The breakthrough moment
+   - Example: *"Then one rainy Tuesday, SHE walked in..."*
+   - Visual: Woman entering shelter, slow motion
+
+5. **Payoff (10-15s)**: Resolution and emotional release
+   - Example: *"She said: 'This one. The chonky orange one.'"*
+   - Visual: Happy reunion, cat purring
+
+6. **Close (5-8s)**: Satisfying conclusion
+   - Example: *"Now he's living his best life"*
+   - Visual: Cat on couch with new owner
+
+### Visual Style
+- **Cinematic quality** with professional lighting
+- **Anime-style expressions** for emotional moments
+- **Dynamic camera motions**: slow zoom, pan, dolly shots
+- **Meme-style subtitles**: White text, black outline, bottom placement
+- **Emotional music**: Matches story mood (heartwarming, epic, funny)
+
+### Caption Strategy
+- **Mood-based hashtags**: #OrangeCat #CatsOfTikTok #EmotionalJourney
+- **Call-to-action**: Engaging questions or statements
+- **Archetype-specific tags**: #AdoptDontShop #GlowUp #OfficeLife
 
 ## 🎨 Story Archetypes
 
@@ -241,6 +389,60 @@ The `TikTokClient` implements the TikTok Content Posting API flow:
 **Reference**: [TikTok Content Posting API](https://developers.tiktok.com/doc/content-posting-api-get-started)
 
 Requires OAuth 2.0 access token with `video.upload` scope.
+
+## 🔑 API Setup Guide
+
+### Getting OpenAI API Key (Optional)
+
+1. Go to [OpenAI Platform](https://platform.openai.com/)
+2. Sign up or log in
+3. Navigate to **API Keys** section
+4. Click **"Create new secret key"**
+5. Copy the key (starts with `sk-...`)
+6. Add to `.env`: `OPENAI_API_KEY=sk-your-key-here`
+
+**Cost**: ~$0.01-0.03 per story generation with GPT-4o
+
+### Getting Kling AI API Key
+
+1. Visit [Kling AI Platform](https://kling.ai) (or contact their sales team)
+2. Create an account and verify email
+3. Navigate to **Developer** or **API Access** section
+4. Generate an API key
+5. Copy the key
+6. Add to `.env`: `KLING_API_KEY=your-kling-key-here`
+
+**Note**: Kling API may require application approval and has usage limits. Check their documentation for current pricing.
+
+### Getting TikTok API Credentials
+
+TikTok Content Posting API requires developer approval:
+
+1. Go to [TikTok Developers](https://developers.tiktok.com/)
+2. Register as a developer
+3. Create a new app
+4. Apply for **Content Posting API** access
+5. Complete the review process (may take 1-2 weeks)
+6. Once approved, generate OAuth 2.0 access token with `video.upload` scope
+7. Add to `.env`: `TIKTOK_API_KEY=your-access-token-here`
+
+**Important**:
+- TikTok API access is restricted to approved developers
+- Test in sandbox environment first
+- Rate limits apply (see [TikTok API docs](https://developers.tiktok.com/doc/content-posting-api-get-started))
+
+### Quick Setup Checklist
+
+- [ ] Install Node.js 20+
+- [ ] Clone repository
+- [ ] Run `npm install`
+- [ ] Copy `.env.example` to `.env`
+- [ ] Add OpenAI API key (optional)
+- [ ] Add Kling AI API key (required)
+- [ ] Add TikTok access token (required)
+- [ ] Run `npm run build`
+- [ ] Test with `npm start -- --dry`
+- [ ] Run first production attempt with `npm start`
 
 ## ⚙️ Configuration
 
@@ -355,6 +557,76 @@ This displays:
 - Recent runs with timestamps
 
 Statistics are persisted to `logs/statistics.json`.
+
+### Example Statistics Report
+
+```
+═══════════════════════════════════════════════════
+           OC-Mill Statistics Report
+═══════════════════════════════════════════════════
+
+Total Runs: 45
+  ✓ Successful: 42 (93.3%)
+  ✗ Failed: 3 (6.7%)
+
+Average Duration: 6m 23s
+
+Story Generation Methods:
+  • OpenAI: 38 runs (84.4%)
+  • Templates: 7 runs (15.6%)
+
+Archetype Distribution:
+  • StreamerCatGlowUp: 12 runs
+  • RagsToRiches: 10 runs
+  • FromShelterToHome: 9 runs
+  • ChonkToBestFriend: 7 runs
+  • VillainArcButSoft: 4 runs
+  • OfficeHeroJourney: 3 runs
+
+Recent Runs (last 5):
+  1. ✓ 2026-02-18 10:30 | StreamerCatGlowUp | 6m 15s | OpenAI
+  2. ✓ 2026-02-17 14:22 | RagsToRiches | 5m 48s | OpenAI
+  3. ✗ 2026-02-17 09:15 | ChonkToBestFriend | 0m 45s | Failed (Kling timeout)
+  4. ✓ 2026-02-16 18:30 | FromShelterToHome | 6m 02s | Templates
+  5. ✓ 2026-02-16 12:45 | VillainArcButSoft | 7m 11s | OpenAI
+
+═══════════════════════════════════════════════════
+```
+
+## 💰 Cost Estimation
+
+Understanding the costs involved in running OC-Mill:
+
+### Per-Video Costs
+
+| Service | Cost per Video | Notes |
+|---------|---------------|-------|
+| **OpenAI GPT-4o** | $0.01 - $0.03 | Story generation only, ~1000-3000 tokens |
+| **Kling AI** | $0.50 - $2.00 | Varies by video length and quality tier |
+| **TikTok API** | Free | No direct costs, but rate limited |
+| **Total (with OpenAI)** | **$0.51 - $2.03** | Per video |
+| **Total (Templates)** | **$0.50 - $2.00** | Per video |
+
+### Monthly Cost Examples
+
+**Light Usage** (1 video/day, templates):
+- 30 videos/month × $0.50 = **$15/month**
+
+**Medium Usage** (3 videos/day, OpenAI):
+- 90 videos/month × $0.75 (avg) = **$67.50/month**
+
+**Heavy Usage** (10 videos/day, OpenAI):
+- 300 videos/month × $0.75 (avg) = **$225/month**
+
+### Cost Optimization Tips
+
+1. **Use Templates**: Save $0.01-$0.03 per video by using `USE_OPENAI_STORIES=false`
+2. **Batch Smartly**: Leverage rate limiting to avoid wasted API calls
+3. **Monitor Failures**: Check `--stats` to identify and fix recurring issues
+4. **Optimize Duration**: Shorter videos (30-45s) may cost less with Kling AI
+5. **Test First**: Always use `--dry` mode when testing new configurations
+
+**Note**: Kling AI pricing is estimated and may vary. Check their official pricing for accurate costs.
 
 ## 🔒 Security Notes
 
@@ -500,6 +772,74 @@ EnvironmentFile=/opt/oc-mill/.env
 [Install]
 WantedBy=multi-user.target
 ```
+
+## ❓ FAQ
+
+### General Questions
+
+**Q: Do I need all three API keys?**
+A: No. OpenAI is optional (you can use templates). You only need Kling AI and TikTok API keys.
+
+**Q: Can I use this for other types of content besides orange cats?**
+A: Yes! The architecture is modular. Modify the story archetypes and prompts in `src/story/archetypes.ts` and `src/services/OpenAIStoryService.ts`.
+
+**Q: How long does it take to generate one video?**
+A: Typically 5-8 minutes end-to-end:
+- Story generation: 5-30 seconds
+- Kling video generation: 4-7 minutes
+- TikTok upload: 30-60 seconds
+
+**Q: Can I run this on a Raspberry Pi?**
+A: Yes, but it will be slower. Requires Node.js 20+. ARM builds of Node.js work fine.
+
+### Troubleshooting
+
+**Q: Why do my videos keep failing validation?**
+A: Check:
+- Kling AI is actually completing the video
+- Downloaded file isn't corrupted (check file size > 500KB)
+- Network connection is stable during download
+
+**Q: Can I customize the video style?**
+A: Yes! Edit `src/prompt/KlingPromptBuilder.ts` to modify the visual style, camera angles, and aesthetic.
+
+**Q: How do I add new story archetypes?**
+A: Edit `src/story/archetypes.ts` and add new templates following the existing structure.
+
+**Q: What if I hit API rate limits?**
+A: The built-in rate limiter handles this automatically. If you still hit limits, adjust the refill rates in `src/utils/RateLimiter.ts`.
+
+### Advanced Usage
+
+**Q: Can I run multiple agents in parallel?**
+A: Yes, but be careful with rate limits. Each agent instance should use its own video download directory.
+
+**Q: How do I backup my statistics?**
+A: Copy `logs/statistics.json` periodically or use a cronjob to backup the entire `logs/` directory.
+
+**Q: Can I customize the TikTok posting schedule?**
+A: Yes! Set `RUN_INTERVAL_HOURS` in `.env` for loop mode, or use cron to schedule specific times.
+
+**Q: Does this work with TikTok business accounts?**
+A: Yes, as long as your OAuth token has the correct scopes for the account type.
+
+**Q: Can I preview videos before uploading?**
+A: Use `--dry` mode to generate the story and prompt, then manually create the video to preview. For automated flows, videos are in `VIDEO_DOWNLOAD_PATH`.
+
+### Performance
+
+**Q: How many videos can I generate per day?**
+A: Limited by:
+- Kling AI rate limits (~6/min with default settings)
+- TikTok posting limits (check TikTok API docs)
+- Your budget
+- Realistically: 50-100 videos/day with proper rate limiting
+
+**Q: Why is the success rate in my stats below 95%?**
+A: Common causes:
+- Kling AI timeouts (increase `MAX_POLL_ATTEMPTS`)
+- Network issues during video download
+- TikTok API temporary errors (agent will log details)
 
 ## 📄 License
 
