@@ -1,6 +1,10 @@
+import { join } from 'path';
 import { StoryService } from '../llm/StoryService';
 import { CaptionGenerator } from '../caption/CaptionGenerator';
 import { TikTokClient } from '../clients/TikTokClient';
+import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
+import { CharacterReferenceCache } from '../services/CharacterReferenceCache';
+import { ImageService, SceneKeyframeResult } from '../media/ImageService';
 import { StatisticsTracker } from '../services/StatisticsTracker';
 import { APIRateLimiters } from '../utils/RateLimiter';
 import { Config } from '../utils/config';
@@ -10,6 +14,7 @@ import { Story } from '../story/types';
 export interface AgentRunResult {
   success: boolean;
   story: Story;
+  keyframes?: SceneKeyframeResult[];
   videoPath?: string;
   videoSizeBytes?: number;
   tiktokPostId?: string;
@@ -40,6 +45,9 @@ export interface AgentRunResult {
  */
 export class OrangeCatAgent {
   private storyService: StoryService;
+  private imageClient: OpenRouterImageClient;
+  private characterCache: CharacterReferenceCache;
+  private imageService: ImageService;
   private captionGenerator: CaptionGenerator;
   private tiktokClient: TikTokClient;
   private statisticsTracker: StatisticsTracker;
@@ -52,6 +60,17 @@ export class OrangeCatAgent {
     this.storyService = new StoryService(config.openrouter, {
       targetDurationSeconds: config.pipeline.videoDurationSeconds,
     });
+    this.imageClient = new OpenRouterImageClient(config.openrouter);
+    this.characterCache = new CharacterReferenceCache(
+      this.imageClient,
+      config.openrouter.imageModel,
+      config.pipeline.characterRefDir
+    );
+    this.imageService = new ImageService(
+      this.imageClient,
+      this.characterCache,
+      config.openrouter.imageModel
+    );
     this.captionGenerator = new CaptionGenerator();
     this.tiktokClient = new TikTokClient({
       apiKey: config.tiktok.apiKey,
@@ -76,22 +95,39 @@ export class OrangeCatAgent {
 
   public async runOnce(): Promise<AgentRunResult> {
     const startTime = Date.now();
+    const runId = new Date().toISOString().replace(/[:.]/g, '-');
     let story: Story | undefined;
+    let keyframes: SceneKeyframeResult[] | undefined;
 
     try {
-      logger.info('🚀 Starting OrangeCatAgent run');
+      logger.info('🚀 Starting OrangeCatAgent run', { runId });
 
       // Step 1: Generate story (LLM, structured outputs)
       logger.info('📖 Step 1: Generating story');
       await this.rateLimiters.openrouterLLM.consume('story-generation');
       story = await this.storyService.generateStory();
 
-      // Step 2: Generate per-scene media + composition.
-      // Phases 2-4 fill these in. Until then, runOnce stops here.
+      // Step 2: Generate per-scene keyframe images using cached character reference.
+      logger.info('🎨 Step 2: Generating scene keyframes');
+      const keyframeDir = join(this.config.pipeline.videoDownloadPath, `run-${runId}`, 'keyframes');
+      const keyframeTasks = story.scenes.length;
+      for (let i = 0; i < keyframeTasks; i++) {
+        await this.rateLimiters.openrouterImage.consume('keyframe');
+      }
+      keyframes = await this.imageService.generateAllKeyframes({
+        story,
+        outputDir: keyframeDir,
+        concurrency: this.config.pipeline.sceneConcurrency,
+      });
+      logger.info('Keyframes ready', {
+        count: keyframes.length,
+        outputDir: keyframeDir,
+      });
+
+      // Step 3-7: video clips, narration, eval, composition, upload — Phases 3-5.
       throw new NotImplementedError(
-        'Per-scene generation, narration, and compositing are not yet wired up. ' +
-          'Phases 2-5 must land before runOnce() can complete end-to-end. ' +
-          'Use --dry to validate the LLM stage in isolation.'
+        'Video clip generation, narration, eval, and compositing are not yet wired up. ' +
+          'Phases 3-5 must land before runOnce() can complete end-to-end.'
       );
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -127,6 +163,7 @@ export class OrangeCatAgent {
             overallMood: 'heartwarming',
             musicStyle: '',
           } as Story),
+        keyframes,
         error: errorMessage,
         duration,
       };
