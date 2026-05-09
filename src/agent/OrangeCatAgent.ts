@@ -1,5 +1,6 @@
 import { join } from 'path';
 import { StoryService } from '../llm/StoryService';
+import { EvalService } from '../llm/EvalService';
 import { CaptionGenerator } from '../caption/CaptionGenerator';
 import { TikTokClient } from '../clients/TikTokClient';
 import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
@@ -88,10 +89,18 @@ export class OrangeCatAgent {
       config.openrouter.imageModel,
       config.pipeline.characterRefDir
     );
+    const evalService =
+      config.pipeline.evalRetriesPerScene > 0
+        ? new EvalService(config.openrouter)
+        : undefined;
     this.imageService = new ImageService(
       this.imageClient,
       this.characterCache,
-      config.openrouter.imageModel
+      config.openrouter.imageModel,
+      {
+        evalService,
+        evalRetriesPerScene: config.pipeline.evalRetriesPerScene,
+      }
     );
     this.videoClipService = new VideoClipService(
       this.videoClient,
