@@ -3,8 +3,10 @@ import { StoryService } from '../llm/StoryService';
 import { CaptionGenerator } from '../caption/CaptionGenerator';
 import { TikTokClient } from '../clients/TikTokClient';
 import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
+import { OpenRouterVideoClient } from '../clients/OpenRouterVideoClient';
 import { CharacterReferenceCache } from '../services/CharacterReferenceCache';
 import { ImageService, SceneKeyframeResult } from '../media/ImageService';
+import { VideoClipService, SceneClipResult } from '../media/VideoClipService';
 import { StatisticsTracker } from '../services/StatisticsTracker';
 import { APIRateLimiters } from '../utils/RateLimiter';
 import { Config } from '../utils/config';
@@ -15,6 +17,7 @@ export interface AgentRunResult {
   success: boolean;
   story: Story;
   keyframes?: SceneKeyframeResult[];
+  clips?: SceneClipResult[];
   videoPath?: string;
   videoSizeBytes?: number;
   tiktokPostId?: string;
@@ -46,8 +49,10 @@ export interface AgentRunResult {
 export class OrangeCatAgent {
   private storyService: StoryService;
   private imageClient: OpenRouterImageClient;
+  private videoClient: OpenRouterVideoClient;
   private characterCache: CharacterReferenceCache;
   private imageService: ImageService;
+  private videoClipService: VideoClipService;
   private captionGenerator: CaptionGenerator;
   private tiktokClient: TikTokClient;
   private statisticsTracker: StatisticsTracker;
@@ -61,6 +66,10 @@ export class OrangeCatAgent {
       targetDurationSeconds: config.pipeline.videoDurationSeconds,
     });
     this.imageClient = new OpenRouterImageClient(config.openrouter);
+    this.videoClient = new OpenRouterVideoClient(config.openrouter, {
+      maxPollAttempts: config.pipeline.maxPollAttempts,
+      pollIntervalMs: config.pipeline.pollIntervalMs,
+    });
     this.characterCache = new CharacterReferenceCache(
       this.imageClient,
       config.openrouter.imageModel,
@@ -70,6 +79,10 @@ export class OrangeCatAgent {
       this.imageClient,
       this.characterCache,
       config.openrouter.imageModel
+    );
+    this.videoClipService = new VideoClipService(
+      this.videoClient,
+      config.openrouter.videoModel
     );
     this.captionGenerator = new CaptionGenerator();
     this.tiktokClient = new TikTokClient({
@@ -96,22 +109,23 @@ export class OrangeCatAgent {
   public async runOnce(): Promise<AgentRunResult> {
     const startTime = Date.now();
     const runId = new Date().toISOString().replace(/[:.]/g, '-');
+    const runDir = join(this.config.pipeline.videoDownloadPath, `run-${runId}`);
     let story: Story | undefined;
     let keyframes: SceneKeyframeResult[] | undefined;
+    let clips: SceneClipResult[] | undefined;
 
     try {
-      logger.info('🚀 Starting OrangeCatAgent run', { runId });
+      logger.info('🚀 Starting OrangeCatAgent run', { runId, runDir });
 
-      // Step 1: Generate story (LLM, structured outputs)
+      // Step 1: Generate story
       logger.info('📖 Step 1: Generating story');
       await this.rateLimiters.openrouterLLM.consume('story-generation');
       story = await this.storyService.generateStory();
 
-      // Step 2: Generate per-scene keyframe images using cached character reference.
+      // Step 2: Generate per-scene keyframe images
       logger.info('🎨 Step 2: Generating scene keyframes');
-      const keyframeDir = join(this.config.pipeline.videoDownloadPath, `run-${runId}`, 'keyframes');
-      const keyframeTasks = story.scenes.length;
-      for (let i = 0; i < keyframeTasks; i++) {
+      const keyframeDir = join(runDir, 'keyframes');
+      for (let i = 0; i < story.scenes.length; i++) {
         await this.rateLimiters.openrouterImage.consume('keyframe');
       }
       keyframes = await this.imageService.generateAllKeyframes({
@@ -119,15 +133,25 @@ export class OrangeCatAgent {
         outputDir: keyframeDir,
         concurrency: this.config.pipeline.sceneConcurrency,
       });
-      logger.info('Keyframes ready', {
-        count: keyframes.length,
-        outputDir: keyframeDir,
-      });
 
-      // Step 3-7: video clips, narration, eval, composition, upload — Phases 3-5.
+      // Step 3: Generate per-scene video clips (image-to-video)
+      logger.info('🎬 Step 3: Generating scene video clips');
+      const clipDir = join(runDir, 'clips');
+      for (let i = 0; i < story.scenes.length; i++) {
+        await this.rateLimiters.openrouterVideo.consume('clip');
+      }
+      clips = await this.videoClipService.generateAllClips({
+        story,
+        keyframes,
+        outputDir: clipDir,
+        concurrency: this.config.pipeline.sceneConcurrency,
+      });
+      logger.info('Clips ready', { count: clips.length, outputDir: clipDir });
+
+      // Steps 4-7: narration, eval, composition, upload — Phases 4-5.
       throw new NotImplementedError(
-        'Video clip generation, narration, eval, and compositing are not yet wired up. ' +
-          'Phases 3-5 must land before runOnce() can complete end-to-end.'
+        'Narration, eval gate, compositing, and upload are not yet wired up. ' +
+          'Phases 4-5 must land before runOnce() can complete end-to-end.'
       );
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -164,6 +188,7 @@ export class OrangeCatAgent {
             musicStyle: '',
           } as Story),
         keyframes,
+        clips,
         error: errorMessage,
         duration,
       };
