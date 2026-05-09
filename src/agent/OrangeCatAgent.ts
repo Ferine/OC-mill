@@ -4,9 +4,16 @@ import { CaptionGenerator } from '../caption/CaptionGenerator';
 import { TikTokClient } from '../clients/TikTokClient';
 import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
 import { OpenRouterVideoClient } from '../clients/OpenRouterVideoClient';
+import { ElevenLabsClient } from '../clients/ElevenLabsClient';
 import { CharacterReferenceCache } from '../services/CharacterReferenceCache';
+import { VideoValidator } from '../services/VideoValidator';
 import { ImageService, SceneKeyframeResult } from '../media/ImageService';
 import { VideoClipService, SceneClipResult } from '../media/VideoClipService';
+import {
+  NarrationService,
+  SceneNarrationResult,
+} from '../media/NarrationService';
+import { Compositor } from '../media/Compositor';
 import { StatisticsTracker } from '../services/StatisticsTracker';
 import { APIRateLimiters } from '../utils/RateLimiter';
 import { Config } from '../utils/config';
@@ -18,6 +25,7 @@ export interface AgentRunResult {
   story: Story;
   keyframes?: SceneKeyframeResult[];
   clips?: SceneClipResult[];
+  narrations?: SceneNarrationResult[];
   videoPath?: string;
   videoSizeBytes?: number;
   tiktokPostId?: string;
@@ -50,9 +58,13 @@ export class OrangeCatAgent {
   private storyService: StoryService;
   private imageClient: OpenRouterImageClient;
   private videoClient: OpenRouterVideoClient;
+  private elevenLabsClient: ElevenLabsClient;
   private characterCache: CharacterReferenceCache;
   private imageService: ImageService;
   private videoClipService: VideoClipService;
+  private narrationService: NarrationService;
+  private compositor: Compositor;
+  private videoValidator: VideoValidator;
   private captionGenerator: CaptionGenerator;
   private tiktokClient: TikTokClient;
   private statisticsTracker: StatisticsTracker;
@@ -70,6 +82,7 @@ export class OrangeCatAgent {
       maxPollAttempts: config.pipeline.maxPollAttempts,
       pollIntervalMs: config.pipeline.pollIntervalMs,
     });
+    this.elevenLabsClient = new ElevenLabsClient(config.elevenlabs);
     this.characterCache = new CharacterReferenceCache(
       this.imageClient,
       config.openrouter.imageModel,
@@ -83,6 +96,14 @@ export class OrangeCatAgent {
     this.videoClipService = new VideoClipService(
       this.videoClient,
       config.openrouter.videoModel
+    );
+    this.narrationService = new NarrationService(
+      this.elevenLabsClient,
+      config.elevenlabs.voicesByMood
+    );
+    this.compositor = new Compositor();
+    this.videoValidator = new VideoValidator(
+      config.pipeline.videoDurationSeconds
     );
     this.captionGenerator = new CaptionGenerator();
     this.tiktokClient = new TikTokClient({
@@ -113,17 +134,20 @@ export class OrangeCatAgent {
     let story: Story | undefined;
     let keyframes: SceneKeyframeResult[] | undefined;
     let clips: SceneClipResult[] | undefined;
+    let narrations: SceneNarrationResult[] | undefined;
+    let videoPath: string | undefined;
+    let videoSizeBytes: number | undefined;
 
     try {
       logger.info('🚀 Starting OrangeCatAgent run', { runId, runDir });
 
       // Step 1: Generate story
-      logger.info('📖 Step 1: Generating story');
+      logger.info('📖 Step 1/7: Generating story');
       await this.rateLimiters.openrouterLLM.consume('story-generation');
       story = await this.storyService.generateStory();
 
-      // Step 2: Generate per-scene keyframe images
-      logger.info('🎨 Step 2: Generating scene keyframes');
+      // Step 2: Per-scene keyframes
+      logger.info('🎨 Step 2/7: Generating scene keyframes');
       const keyframeDir = join(runDir, 'keyframes');
       for (let i = 0; i < story.scenes.length; i++) {
         await this.rateLimiters.openrouterImage.consume('keyframe');
@@ -134,8 +158,8 @@ export class OrangeCatAgent {
         concurrency: this.config.pipeline.sceneConcurrency,
       });
 
-      // Step 3: Generate per-scene video clips (image-to-video)
-      logger.info('🎬 Step 3: Generating scene video clips');
+      // Step 3: Per-scene video clips (image-to-video, parallel)
+      logger.info('🎬 Step 3/7: Generating scene video clips');
       const clipDir = join(runDir, 'clips');
       for (let i = 0; i < story.scenes.length; i++) {
         await this.rateLimiters.openrouterVideo.consume('clip');
@@ -146,13 +170,83 @@ export class OrangeCatAgent {
         outputDir: clipDir,
         concurrency: this.config.pipeline.sceneConcurrency,
       });
-      logger.info('Clips ready', { count: clips.length, outputDir: clipDir });
 
-      // Steps 4-7: narration, eval, composition, upload — Phases 4-5.
-      throw new NotImplementedError(
-        'Narration, eval gate, compositing, and upload are not yet wired up. ' +
-          'Phases 4-5 must land before runOnce() can complete end-to-end.'
-      );
+      // Step 4: TTS narration per scene (ElevenLabs, per-mood voices)
+      logger.info('🗣️  Step 4/7: Generating narration');
+      const narrationDir = join(runDir, 'narration');
+      for (let i = 0; i < story.scenes.length; i++) {
+        await this.rateLimiters.elevenlabs.consume('narration');
+      }
+      narrations = await this.narrationService.generateAll({
+        story,
+        outputDir: narrationDir,
+        concurrency: this.config.pipeline.sceneConcurrency,
+      });
+
+      // Step 5: Compose final video (ffmpeg)
+      logger.info('🎞️  Step 5/7: Composing final video');
+      const composeDir = join(runDir, 'compose');
+      const finalPath = join(runDir, 'final.mp4');
+      const composeResult = await this.compositor.compose({
+        story,
+        clips,
+        narrations,
+        outputDir: composeDir,
+        outputPath: finalPath,
+      });
+      videoPath = composeResult.path;
+
+      // Step 6: Validate composed output
+      logger.info('✔️  Step 6/7: Validating composed video');
+      const validation = await this.videoValidator.validateVideo(videoPath);
+      videoSizeBytes = validation.metadata.sizeBytes;
+      if (!validation.valid) {
+        throw new Error(
+          `Composed video failed validation: ${validation.errors.join(', ')}`
+        );
+      }
+
+      // Step 7: Upload to TikTok
+      logger.info('📤 Step 7/7: Uploading to TikTok');
+      const caption = this.captionGenerator.generateCaption(story);
+      await this.rateLimiters.tiktok.consume('video-upload');
+      const tiktokResult = await this.tiktokClient.uploadVideo({
+        filePath: videoPath,
+        caption,
+        visibility: this.config.tiktok.visibility,
+      });
+
+      const duration = Date.now() - startTime;
+
+      await this.statisticsTracker.recordRun({
+        timestamp: new Date().toISOString(),
+        success: true,
+        archetype: story.archetype,
+        storyGenerationMethod: this.config.openrouter.llmModel,
+        duration,
+        tiktokPostId: tiktokResult.postId,
+        tiktokShareUrl: tiktokResult.shareUrl,
+        videoSize: videoSizeBytes,
+        sceneCount: story.scenes.length,
+      });
+
+      logger.info('✅ Run completed successfully', {
+        durationMs: duration,
+        tiktokPostId: tiktokResult.postId,
+      });
+
+      return {
+        success: true,
+        story,
+        keyframes,
+        clips,
+        narrations,
+        videoPath,
+        videoSizeBytes,
+        tiktokPostId: tiktokResult.postId,
+        tiktokShareUrl: tiktokResult.shareUrl,
+        duration,
+      };
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -189,6 +283,9 @@ export class OrangeCatAgent {
           } as Story),
         keyframes,
         clips,
+        narrations,
+        videoPath,
+        videoSizeBytes,
         error: errorMessage,
         duration,
       };
@@ -239,11 +336,6 @@ export class OrangeCatAgent {
     return this.statisticsTracker;
   }
 
-  /** Phase 4 wires this into the publish step. */
-  public getTikTokClient(): TikTokClient {
-    return this.tiktokClient;
-  }
-
   public shutdown(): void {
     this.rateLimiters.stopAll();
     logger.info('OrangeCatAgent shutdown');
@@ -251,12 +343,5 @@ export class OrangeCatAgent {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-}
-
-class NotImplementedError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'NotImplementedError';
   }
 }
