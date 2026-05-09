@@ -1,58 +1,59 @@
 import dotenv from 'dotenv';
 import { logger } from './logger';
 
-// Load environment variables from .env file
 dotenv.config();
 
-/**
- * Configuration interface for the entire application
- * All values loaded from environment variables with sensible defaults
- */
-export interface Config {
-  openai: {
-    apiKey: string;
-    model: string;
-    useForStories: boolean;
-  };
-  kling: {
-    apiKey: string;
-    baseUrl: string;
-    videoDurationSeconds: number;
-    aspectRatio: '9:16';
-    maxPollAttempts: number;
-    pollIntervalMs: number;
-  };
-  tiktok: {
-    apiKey: string;
-    baseUrl: string;
-    visibility: 'public' | 'friends' | 'private';
-  };
-  video: {
-    downloadPath: string;
-  };
-  scheduling: {
-    runIntervalHours: number;
-    autoRun: boolean;
-  };
-  logging: {
-    level: string;
-  };
+export interface OpenRouterConfig {
+  apiKey: string;
+  baseUrl: string;
+  llmModel: string;
+  imageModel: string;
+  videoModel: string;
+  vlmModel: string;
+  appName: string;
+  appUrl: string;
 }
 
-/**
- * Validates that required environment variables are present
- */
-function validateEnv(): void {
-  const required = ['KLING_API_KEY', 'TIKTOK_API_KEY'];
+export interface ElevenLabsConfig {
+  apiKey: string;
+  model: string;
+  voicesByMood: Record<string, string>;
+}
 
-  // If using OpenAI for stories, require the API key
-  const useOpenAI = process.env.USE_OPENAI_STORIES === 'true';
-  if (useOpenAI) {
-    required.push('OPENAI_API_KEY');
-  }
+export interface PipelineConfig {
+  videoDurationSeconds: number;
+  aspectRatio: '9:16';
+  clipDurationSeconds: number;
+  sceneConcurrency: number;
+  maxPollAttempts: number;
+  pollIntervalMs: number;
+  evalRetriesPerScene: number;
+  characterRefDir: string;
+  videoDownloadPath: string;
+}
 
-  const missing = required.filter((key) => !process.env[key]);
+export interface TikTokConfig {
+  apiKey: string;
+  baseUrl: string;
+  visibility: 'public' | 'friends' | 'private';
+}
 
+export interface SchedulingConfig {
+  runIntervalHours: number;
+  autoRun: boolean;
+}
+
+export interface Config {
+  openrouter: OpenRouterConfig;
+  elevenlabs: ElevenLabsConfig;
+  pipeline: PipelineConfig;
+  tiktok: TikTokConfig;
+  scheduling: SchedulingConfig;
+  logging: { level: string };
+}
+
+function requireEnv(keys: string[]): void {
+  const missing = keys.filter((k) => !process.env[k]);
   if (missing.length > 0) {
     logger.error('Missing required environment variables:', { missing });
     throw new Error(
@@ -61,44 +62,50 @@ function validateEnv(): void {
   }
 }
 
-/**
- * Loads and validates configuration from environment variables
- */
 export function loadConfig(): Config {
-  validateEnv();
+  requireEnv(['OPENROUTER_API_KEY', 'ELEVENLABS_API_KEY', 'TIKTOK_API_KEY']);
 
   const config: Config = {
-    openai: {
-      apiKey: process.env.OPENAI_API_KEY || '',
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
-      useForStories: process.env.USE_OPENAI_STORIES === 'true',
+    openrouter: {
+      apiKey: process.env.OPENROUTER_API_KEY!,
+      baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+      llmModel: process.env.OPENROUTER_LLM_MODEL || 'openai/gpt-5',
+      imageModel: process.env.OPENROUTER_IMAGE_MODEL || 'openai/gpt-5.4-image-2',
+      videoModel: process.env.OPENROUTER_VIDEO_MODEL || 'bytedance/seedance-2.0',
+      vlmModel: process.env.OPENROUTER_VLM_MODEL || 'openai/gpt-5',
+      appName: process.env.OPENROUTER_APP_NAME || 'oc-mill',
+      appUrl: process.env.OPENROUTER_APP_URL || 'https://github.com/ferine/oc-mill',
     },
-    kling: {
-      apiKey: process.env.KLING_API_KEY!,
-      baseUrl: process.env.KLING_BASE_URL || 'https://api.kling.ai',
-      videoDurationSeconds: parseInt(
-        process.env.VIDEO_DURATION_SECONDS || '55',
-        10
-      ),
+    elevenlabs: {
+      apiKey: process.env.ELEVENLABS_API_KEY!,
+      model: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2',
+      voicesByMood: {
+        heartwarming: process.env.ELEVENLABS_VOICE_HEARTWARMING || '21m00Tcm4TlvDq8ikWAM',
+        funny: process.env.ELEVENLABS_VOICE_FUNNY || 'AZnzlk1XvdvUeBnXmlld',
+        dramatic: process.env.ELEVENLABS_VOICE_DRAMATIC || 'ErXwobaYiN019PkySvjV',
+        sad: process.env.ELEVENLABS_VOICE_SAD || 'MF3mGyEYCl7XYWbV9V6O',
+        hopeful: process.env.ELEVENLABS_VOICE_HOPEFUL || 'TxGEqnHWrfWFTfGW9XjX',
+        epic: process.env.ELEVENLABS_VOICE_EPIC || 'VR6AewLTigWG4xSOukaG',
+      },
+    },
+    pipeline: {
+      videoDurationSeconds: parseInt(process.env.VIDEO_DURATION_SECONDS || '55', 10),
       aspectRatio: '9:16',
-      maxPollAttempts: parseInt(process.env.MAX_POLL_ATTEMPTS || '60', 10),
+      clipDurationSeconds: parseInt(process.env.CLIP_DURATION_SECONDS || '7', 10),
+      sceneConcurrency: parseInt(process.env.SCENE_CONCURRENCY || '2', 10),
+      maxPollAttempts: parseInt(process.env.MAX_POLL_ATTEMPTS || '120', 10),
       pollIntervalMs: parseInt(process.env.POLL_INTERVAL_MS || '10000', 10),
+      evalRetriesPerScene: parseInt(process.env.EVAL_RETRIES_PER_SCENE || '1', 10),
+      characterRefDir: process.env.CHARACTER_REF_DIR || '/tmp/oc-mill-character-refs',
+      videoDownloadPath: process.env.VIDEO_DOWNLOAD_PATH || '/tmp/oc-mill-videos',
     },
     tiktok: {
       apiKey: process.env.TIKTOK_API_KEY!,
-      baseUrl:
-        process.env.TIKTOK_BASE_URL || 'https://open.tiktokapis.com',
-      visibility: (process.env.TIKTOK_VISIBILITY as any) || 'public',
-    },
-    video: {
-      downloadPath:
-        process.env.VIDEO_DOWNLOAD_PATH || '/tmp/oc-mill-videos',
+      baseUrl: process.env.TIKTOK_BASE_URL || 'https://open.tiktokapis.com',
+      visibility: (process.env.TIKTOK_VISIBILITY as TikTokConfig['visibility']) || 'public',
     },
     scheduling: {
-      runIntervalHours: parseInt(
-        process.env.RUN_INTERVAL_HOURS || '24',
-        10
-      ),
+      runIntervalHours: parseInt(process.env.RUN_INTERVAL_HOURS || '24', 10),
       autoRun: process.env.AUTO_RUN === 'true',
     },
     logging: {
@@ -106,17 +113,15 @@ export function loadConfig(): Config {
     },
   };
 
-  logger.info('Configuration loaded successfully', {
-    useOpenAI: config.openai.useForStories,
-    openaiModel: config.openai.model,
-    klingBaseUrl: config.kling.baseUrl,
-    tiktokBaseUrl: config.tiktok.baseUrl,
-    videoDuration: config.kling.videoDurationSeconds,
-    autoRun: config.scheduling.autoRun,
+  logger.info('Configuration loaded', {
+    llmModel: config.openrouter.llmModel,
+    imageModel: config.openrouter.imageModel,
+    videoModel: config.openrouter.videoModel,
+    sceneConcurrency: config.pipeline.sceneConcurrency,
+    clipDurationSeconds: config.pipeline.clipDurationSeconds,
   });
 
   return config;
 }
 
-// Export singleton instance
 export const config = loadConfig();

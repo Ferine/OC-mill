@@ -163,41 +163,38 @@ export class RateLimiter {
 }
 
 /**
- * Global rate limiters for different APIs
+ * Per-vendor rate limiters. Tunable via constructor; defaults are conservative.
  */
 export class APIRateLimiters {
-  public readonly openai: RateLimiter;
-  public readonly kling: RateLimiter;
+  public readonly openrouterLLM: RateLimiter;
+  public readonly openrouterImage: RateLimiter;
+  public readonly openrouterVideo: RateLimiter;
+  public readonly elevenlabs: RateLimiter;
   public readonly tiktok: RateLimiter;
 
   constructor() {
-    // OpenAI: Conservative limits (adjust based on your tier)
-    this.openai = new RateLimiter(10, 0.5); // 10 tokens, refill 0.5/sec (30/min)
-
-    // Kling: Moderate limits (adjust based on API docs)
-    this.kling = new RateLimiter(5, 0.1); // 5 tokens, refill 0.1/sec (6/min)
-
-    // TikTok: Conservative limits (adjust based on API docs)
-    this.tiktok = new RateLimiter(10, 0.2); // 10 tokens, refill 0.2/sec (12/min)
+    this.openrouterLLM = new RateLimiter(10, 0.5);
+    this.openrouterImage = new RateLimiter(8, 0.3);
+    this.openrouterVideo = new RateLimiter(5, 0.1);
+    this.elevenlabs = new RateLimiter(10, 0.5);
+    this.tiktok = new RateLimiter(10, 0.2);
 
     logger.info('API Rate limiters initialized');
   }
 
-  /**
-   * Stop all rate limiters
-   */
   public stopAll(): void {
-    this.openai.stop();
-    this.kling.stop();
+    this.openrouterLLM.stop();
+    this.openrouterImage.stop();
+    this.openrouterVideo.stop();
+    this.elevenlabs.stop();
     this.tiktok.stop();
   }
 
-  /**
-   * Reset all rate limiters
-   */
   public resetAll(): void {
-    this.openai.resetAll();
-    this.kling.resetAll();
+    this.openrouterLLM.resetAll();
+    this.openrouterImage.resetAll();
+    this.openrouterVideo.resetAll();
+    this.elevenlabs.resetAll();
     this.tiktok.resetAll();
   }
 }

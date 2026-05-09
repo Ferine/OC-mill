@@ -10,7 +10,7 @@ export interface RunStatistics {
   timestamp: string;
   success: boolean;
   archetype: string;
-  storyGenerationMethod: 'OpenAI' | 'Templates';
+  storyGenerationMethod: string;
   duration: number; // milliseconds
   klingJobId?: string;
   tiktokPostId?: string;

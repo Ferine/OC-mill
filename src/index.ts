@@ -1,8 +1,30 @@
 #!/usr/bin/env node
 
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { OrangeCatAgent } from './agent/OrangeCatAgent';
 import { config } from './utils/config';
 import { logger } from './utils/logger';
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * Verify ffmpeg is available — required by the Phase 4 compositor.
+ * Logs a warning rather than throwing so dry runs still work without it.
+ */
+async function checkFfmpeg(): Promise<void> {
+  try {
+    const { stdout } = await execFileAsync('ffmpeg', ['-version']);
+    const firstLine = stdout.split('\n')[0];
+    logger.info('ffmpeg available', { version: firstLine });
+  } catch (err) {
+    logger.warn(
+      'ffmpeg not found on PATH — required for video composition (Phase 4). ' +
+        'Install ffmpeg before running runOnce.',
+      { error: err instanceof Error ? err.message : String(err) }
+    );
+  }
+}
 
 /**
  * Main entry point for the OC-mill agent
@@ -96,7 +118,7 @@ async function runMultiple(agent: OrangeCatAgent, count: number): Promise<void> 
 }
 
 /**
- * Run agent in dry mode (no API calls)
+ * Run agent in dry mode (LLM stage only)
  */
 async function runDry(agent: OrangeCatAgent): Promise<void> {
   logger.info('Starting dry run');
@@ -106,7 +128,7 @@ async function runDry(agent: OrangeCatAgent): Promise<void> {
   console.log('\n✅ Dry run completed');
   console.log(`Story archetype: ${result.story.archetype}`);
   console.log(`Story title: ${result.story.title}`);
-  console.log(`Prompt length: ${result.prompt.length} chars`);
+  console.log(`Scenes: ${result.story.scenes.length}`);
   console.log(`Caption length: ${result.caption.length} chars`);
 }
 
@@ -181,6 +203,9 @@ async function main(): Promise<void> {
       platform: process.platform,
       env: process.env.NODE_ENV || 'development',
     });
+
+    // Verify ffmpeg (warning only — dry runs work without it)
+    await checkFfmpeg();
 
     // Initialize agent
     const agent = new OrangeCatAgent(config);
