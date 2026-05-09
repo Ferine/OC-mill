@@ -2,9 +2,12 @@
 
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { readFile } from 'fs/promises';
+import { dirname } from 'path';
 import { OrangeCatAgent } from './agent/OrangeCatAgent';
 import { config } from './utils/config';
 import { logger } from './utils/logger';
+import { Story } from './story/types';
 
 const execFileAsync = promisify(execFile);
 
@@ -27,38 +30,45 @@ async function checkFfmpeg(): Promise<void> {
 }
 
 /**
- * Main entry point for the OC-mill agent
+ * Main entry point for the OC-mill agent.
  *
  * Usage:
- *   npm start              - Run once
- *   npm start -- --dry     - Dry run (no API calls)
- *   npm start -- --stats   - Show statistics
- *   npm start -- --count N - Run N times
- *   npm start -- --loop    - Run continuously with scheduling
+ *   npm start                                       Run once
+ *   npm start -- --dry                              LLM-only dry run
+ *   npm start -- --stats                            Show statistics
+ *   npm start -- --count N                          Run N times sequentially
+ *   npm start -- --loop                             Run continuously
+ *   npm start -- --scene N --story-file story.json  Regenerate one scene
  */
 
-/**
- * Parse command line arguments
- */
-function parseArgs(): {
-  mode: 'once' | 'dry' | 'loop' | 'stats';
-  count?: number;
-} {
+type Args =
+  | { mode: 'once'; count?: number }
+  | { mode: 'dry' }
+  | { mode: 'loop' }
+  | { mode: 'stats' }
+  | { mode: 'scene'; sceneIndex: number; storyFile: string };
+
+function parseArgs(): Args {
   const args = process.argv.slice(2);
 
-  if (args.includes('--stats') || args.includes('-s')) {
-    return { mode: 'stats' };
+  if (args.includes('--stats') || args.includes('-s')) return { mode: 'stats' };
+  if (args.includes('--dry') || args.includes('-d')) return { mode: 'dry' };
+  if (args.includes('--loop') || args.includes('-l')) return { mode: 'loop' };
+
+  const sceneIdx = args.findIndex((a) => a === '--scene');
+  if (sceneIdx !== -1 && args[sceneIdx + 1]) {
+    const n = parseInt(args[sceneIdx + 1], 10);
+    const fileIdx = args.findIndex((a) => a === '--story-file');
+    const storyFile = fileIdx !== -1 ? args[fileIdx + 1] : undefined;
+    if (Number.isNaN(n) || n < 0) {
+      throw new Error('--scene requires a non-negative integer');
+    }
+    if (!storyFile) {
+      throw new Error('--scene requires --story-file <path.json>');
+    }
+    return { mode: 'scene', sceneIndex: n, storyFile };
   }
 
-  if (args.includes('--dry') || args.includes('-d')) {
-    return { mode: 'dry' };
-  }
-
-  if (args.includes('--loop') || args.includes('-l')) {
-    return { mode: 'loop' };
-  }
-
-  // Check for --count flag
   const countIndex = args.findIndex((arg) => arg === '--count' || arg === '-c');
   if (countIndex !== -1 && args[countIndex + 1]) {
     const count = parseInt(args[countIndex + 1], 10);
@@ -68,6 +78,24 @@ function parseArgs(): {
   }
 
   return { mode: 'once' };
+}
+
+async function runScene(
+  agent: OrangeCatAgent,
+  storyFile: string,
+  sceneIndex: number
+): Promise<void> {
+  logger.info('Regenerating single scene', { storyFile, sceneIndex });
+  const raw = await readFile(storyFile, 'utf-8');
+  const story = JSON.parse(raw) as Story;
+
+  const outputDir = dirname(storyFile);
+  const result = await agent.regenerateScene({ story, sceneIndex, outputDir });
+
+  console.log('\n✅ Scene regenerated');
+  console.log(`Keyframe: ${result.keyframe.path}`);
+  console.log(`Clip:     ${result.clip.path}`);
+  console.log(`Narration: ${result.narration.path}`);
 }
 
 /**
@@ -212,11 +240,10 @@ async function main(): Promise<void> {
     await agent.initialize();
 
     // Parse arguments and run
-    const { mode, count } = parseArgs();
+    const parsed = parseArgs();
+    logger.info('Running in mode', { mode: parsed.mode });
 
-    logger.info('Running in mode', { mode, count });
-
-    switch (mode) {
+    switch (parsed.mode) {
       case 'stats':
         await showStats(agent);
         break;
@@ -229,10 +256,14 @@ async function main(): Promise<void> {
         await runLoop(agent);
         break;
 
+      case 'scene':
+        await runScene(agent, parsed.storyFile, parsed.sceneIndex);
+        break;
+
       case 'once':
       default:
-        if (count && count > 1) {
-          await runMultiple(agent, count);
+        if (parsed.count && parsed.count > 1) {
+          await runMultiple(agent, parsed.count);
         } else {
           await runOnce(agent);
         }

@@ -321,6 +321,62 @@ export class OrangeCatAgent {
   }
 
   /**
+   * Regenerate a single scene (keyframe → clip → narration) from a saved story.
+   * Useful as a dev loop — fix one bad scene without re-running the full
+   * pipeline or paying for re-generations of the other scenes.
+   */
+  public async regenerateScene(opts: {
+    story: Story;
+    sceneIndex: number;
+    outputDir: string;
+  }): Promise<{
+    keyframe: SceneKeyframeResult;
+    clip: SceneClipResult;
+    narration: SceneNarrationResult;
+  }> {
+    if (opts.sceneIndex < 0 || opts.sceneIndex >= opts.story.scenes.length) {
+      throw new Error(
+        `sceneIndex ${opts.sceneIndex} out of range (story has ${opts.story.scenes.length} scenes)`
+      );
+    }
+    const scene = opts.story.scenes[opts.sceneIndex];
+
+    logger.info('Regenerating single scene', {
+      sceneIndex: opts.sceneIndex,
+      outputDir: opts.outputDir,
+    });
+
+    await this.rateLimiters.openrouterImage.consume('keyframe');
+    const keyframe = await this.imageService.generateKeyframe({
+      story: opts.story,
+      scene,
+      sceneIndex: opts.sceneIndex,
+      outputDir: join(opts.outputDir, 'keyframes'),
+    });
+
+    await this.rateLimiters.openrouterVideo.consume('clip');
+    const clip = await this.videoClipService.generateClip({
+      scene,
+      sceneIndex: opts.sceneIndex,
+      keyframePath: keyframe.path,
+      outputDir: join(opts.outputDir, 'clips'),
+    });
+
+    await this.rateLimiters.elevenlabs.consume('narration');
+    const [narration] = await this.narrationService.generateAll({
+      story: { ...opts.story, scenes: [scene] },
+      outputDir: join(opts.outputDir, 'narration'),
+      concurrency: 1,
+    });
+
+    return {
+      keyframe,
+      clip,
+      narration: { ...narration, sceneIndex: opts.sceneIndex },
+    };
+  }
+
+  /**
    * Dry run — exercises only the LLM stage (story + caption).
    * Useful for validating Phase 1 in isolation before later phases land.
    */
