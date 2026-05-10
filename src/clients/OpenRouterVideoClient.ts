@@ -73,20 +73,23 @@ export class OpenRouterVideoClient {
     const frameImages: Array<Record<string, unknown>> = [];
     if (opts.firstFrame) {
       frameImages.push({
-        frame_type: 'first_frame',
+        type: 'image_url',
         image_url: { url: bufferToDataUrl(opts.firstFrame) },
+        frame_type: 'first_frame',
       });
     }
     if (opts.lastFrame) {
       frameImages.push({
-        frame_type: 'last_frame',
+        type: 'image_url',
         image_url: { url: bufferToDataUrl(opts.lastFrame) },
+        frame_type: 'last_frame',
       });
     }
     if (frameImages.length > 0) body.frame_images = frameImages;
 
     if (opts.referenceImages && opts.referenceImages.length > 0) {
       body.input_references = opts.referenceImages.map((buf) => ({
+        type: 'image_url',
         image_url: { url: bufferToDataUrl(buf) },
       }));
     }
