@@ -1,20 +1,17 @@
-import fetch from 'node-fetch';
-import FormData from 'form-data';
-import { createReadStream, statSync } from 'fs';
+import { openAsBlob } from 'fs';
+import { stat } from 'fs/promises';
 import { logger } from '../utils/logger';
 
 /**
- * TikTok API type definitions
+ * TikTok Content Posting API client.
  *
- * PLACEHOLDER API STRUCTURE - Update based on actual TikTok API documentation
+ * Endpoints:
+ *   POST  /v2/post/publish/video/init/      — initialize upload
+ *   PUT   <upload_url>                       — upload the video bytes
+ *   POST  /v2/post/publish/video/complete/  — publish
  *
- * Expected endpoints:
- * POST https://open.tiktokapis.com/v2/post/publish/video/init/ - Initialize upload
- * POST https://open.tiktokapis.com/v2/post/publish/video/upload/ - Upload video chunk
- * POST https://open.tiktokapis.com/v2/post/publish/video/complete/ - Complete upload
- *
- * TikTok API requires OAuth 2.0 authentication
  * Reference: https://developers.tiktok.com/doc/content-posting-api-get-started
+ * Auth: OAuth 2.0 access token with `video.upload` scope.
  */
 
 export interface TikTokUploadRequest {
@@ -40,14 +37,11 @@ export interface TikTokInitUploadResponse {
 }
 
 export interface TikTokClientConfig {
-  apiKey: string; // OAuth access token
+  apiKey: string;
   baseUrl: string;
-  userId?: string; // TikTok user ID (optional, may be derived from token)
+  userId?: string;
 }
 
-/**
- * TikTokClient handles video uploads to TikTok
- */
 export class TikTokClient {
   private apiKey: string;
   private baseUrl: string;
@@ -64,15 +58,6 @@ export class TikTokClient {
     });
   }
 
-  /**
-   * Upload video to TikTok with caption and settings
-   *
-   * This implements a simplified upload flow. The actual TikTok API
-   * uses a multi-step process:
-   * 1. Initialize upload
-   * 2. Upload video file
-   * 3. Publish/complete upload
-   */
   public async uploadVideo(
     request: TikTokUploadRequest
   ): Promise<TikTokUploadResponse> {
@@ -82,57 +67,27 @@ export class TikTokClient {
       visibility: request.visibility || 'public',
     });
 
-    try {
-      // Validate file exists and get size
-      const stats = statSync(request.filePath);
-      logger.info('Video file validated', {
-        sizeBytes: stats.size,
-        sizeMB: (stats.size / 1024 / 1024).toFixed(2),
-      });
+    const stats = await stat(request.filePath);
+    logger.info('Video file validated', {
+      sizeBytes: stats.size,
+      sizeMB: (stats.size / 1024 / 1024).toFixed(2),
+    });
 
-      // Step 1: Initialize upload
-      const uploadInit = await this.initializeUpload(request);
+    const init = await this.initializeUpload(stats.size);
+    await this.uploadVideoFile(request.filePath, init.uploadUrl);
+    const result = await this.publishVideo(init.uploadId, request);
 
-      // Step 2: Upload video file
-      await this.uploadVideoFile(
-        request.filePath,
-        uploadInit.uploadUrl,
-        uploadInit.uploadId
-      );
-
-      // Step 3: Publish video
-      const result = await this.publishVideo(uploadInit.uploadId, request);
-
-      logger.info('TikTok video uploaded successfully', {
-        postId: result.postId,
-        status: result.status,
-        shareUrl: result.shareUrl,
-      });
-
-      return result;
-    } catch (error) {
-      logger.error('Failed to upload video to TikTok', {
-        filePath: request.filePath,
-        error,
-      });
-      throw new Error(`TikTok upload failed: ${error}`);
-    }
+    logger.info('TikTok video uploaded successfully', {
+      postId: result.postId,
+      status: result.status,
+      shareUrl: result.shareUrl,
+    });
+    return result;
   }
 
-  /**
-   * Step 1: Initialize the upload process
-   *
-   * API Endpoint: POST /v2/post/publish/video/init/
-   * Request: { source_info: { source: "FILE_UPLOAD", video_size: number } }
-   * Response: { upload_id, upload_url }
-   */
   private async initializeUpload(
-    request: TikTokUploadRequest
+    videoSize: number
   ): Promise<TikTokInitUploadResponse> {
-    logger.info('Initializing TikTok upload');
-
-    const stats = statSync(request.filePath);
-
     const response = await fetch(
       `${this.baseUrl}/v2/post/publish/video/init/`,
       {
@@ -142,89 +97,60 @@ export class TikTokClient {
           Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          source_info: {
-            source: 'FILE_UPLOAD',
-            video_size: stats.size,
-          },
+          source_info: { source: 'FILE_UPLOAD', video_size: videoSize },
         }),
       }
     );
-
     if (!response.ok) {
-      const errorText = await response.text();
       throw new Error(
-        `TikTok init upload failed: ${response.status} - ${errorText}`
+        `TikTok init upload failed: ${response.status} ${await response.text()}`
       );
     }
-
-    const data = (await response.json()) as any;
-
-    logger.info('Upload initialized', {
-      uploadId: data.data?.upload_id,
-    });
-
-    // TikTok API response structure: { data: { upload_id, upload_url } }
-    return {
-      uploadId: data.data?.upload_id || data.upload_id,
-      uploadUrl: data.data?.upload_url || data.upload_url,
+    const data = (await response.json()) as {
+      data?: { upload_id?: string; upload_url?: string };
+      upload_id?: string;
+      upload_url?: string;
     };
+    const uploadId = data.data?.upload_id ?? data.upload_id;
+    const uploadUrl = data.data?.upload_url ?? data.upload_url;
+    if (!uploadId || !uploadUrl) {
+      throw new Error(`TikTok init missing upload_id/upload_url: ${JSON.stringify(data)}`);
+    }
+    logger.info('Upload initialized', { uploadId });
+    return { uploadId, uploadUrl };
   }
 
-  /**
-   * Step 2: Upload the actual video file
-   *
-   * API Endpoint: PUT to the upload_url provided by init
-   * Upload video file as binary data
-   */
   private async uploadVideoFile(
     filePath: string,
-    uploadUrl: string,
-    uploadId: string
+    uploadUrl: string
   ): Promise<void> {
-    logger.info('Uploading video file', { uploadId });
-
+    const blob = await openAsBlob(filePath);
     const form = new FormData();
-    form.append('video', createReadStream(filePath));
+    form.append('video', blob, 'video.mp4');
 
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: form,
-      headers: form.getHeaders(),
-    });
-
+    const response = await fetch(uploadUrl, { method: 'PUT', body: form });
     if (!response.ok) {
-      const errorText = await response.text();
       throw new Error(
-        `TikTok file upload failed: ${response.status} - ${errorText}`
+        `TikTok file upload failed: ${response.status} ${await response.text()}`
       );
     }
-
-    logger.info('Video file uploaded successfully', { uploadId });
+    logger.info('Video file uploaded successfully');
   }
 
-  /**
-   * Step 3: Publish/complete the upload
-   *
-   * API Endpoint: POST /v2/post/publish/video/complete/
-   * Request: { upload_id, title, privacy_level, disable_comment, etc. }
-   * Response: { post_id, status, share_url }
-   */
   private async publishVideo(
     uploadId: string,
     request: TikTokUploadRequest
   ): Promise<TikTokUploadResponse> {
-    logger.info('Publishing TikTok video', { uploadId });
-
-    const publishPayload = {
+    const payload = {
       upload_id: uploadId,
       post_info: {
         title: request.caption,
         privacy_level: this.mapVisibilityToPrivacyLevel(
-          request.visibility || 'public'
+          request.visibility ?? 'public'
         ),
-        disable_comment: request.disableComment || false,
-        disable_duet: request.disableDuet || false,
-        disable_stitch: request.disableStitch || false,
+        disable_comment: request.disableComment ?? false,
+        disable_duet: request.disableDuet ?? false,
+        disable_stitch: request.disableStitch ?? false,
       },
     };
 
@@ -236,98 +162,51 @@ export class TikTokClient {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.apiKey}`,
         },
-        body: JSON.stringify(publishPayload),
+        body: JSON.stringify(payload),
       }
     );
-
     if (!response.ok) {
-      const errorText = await response.text();
       throw new Error(
-        `TikTok publish failed: ${response.status} - ${errorText}`
+        `TikTok publish failed: ${response.status} ${await response.text()}`
       );
     }
-
-    const data = (await response.json()) as any;
-
-    // TikTok API response structure varies, handle both formats
-    const publishInfo = data.data || data;
-
+    const data = (await response.json()) as {
+      data?: Record<string, unknown>;
+      message?: string;
+    } & Record<string, unknown>;
+    const info = (data.data ?? data) as Record<string, unknown>;
     return {
-      postId: publishInfo.publish_id || publishInfo.post_id,
-      status: publishInfo.status || 'processing',
-      shareUrl: publishInfo.share_url,
-      embedUrl: publishInfo.embed_url,
+      postId: String(info.publish_id ?? info.post_id ?? ''),
+      status: (info.status as TikTokUploadResponse['status']) ?? 'processing',
+      shareUrl: info.share_url as string | undefined,
+      embedUrl: info.embed_url as string | undefined,
       message: data.message,
     };
   }
 
-  /**
-   * Map our visibility type to TikTok's privacy_level
-   */
+  public async getPostStatus(postId: string): Promise<unknown> {
+    const response = await fetch(
+      `${this.baseUrl}/v2/post/list/?post_id=${postId}`,
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${this.apiKey}` },
+      }
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch post status: ${response.status} ${await response.text()}`
+      );
+    }
+    return response.json();
+  }
+
   private mapVisibilityToPrivacyLevel(
     visibility: 'public' | 'friends' | 'private'
   ): string {
-    const mapping = {
+    return {
       public: 'PUBLIC_TO_EVERYONE',
       friends: 'MUTUAL_FOLLOW_FRIENDS',
       private: 'SELF_ONLY',
-    };
-    return mapping[visibility];
-  }
-
-  /**
-   * Get video post status (if needed for verification)
-   *
-   * API Endpoint: GET /v2/post/list/
-   * Can be used to verify upload and get post details
-   */
-  public async getPostStatus(postId: string): Promise<any> {
-    logger.info('Fetching post status', { postId });
-
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/v2/post/list/?post_id=${postId}`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(
-          `Failed to fetch post status: ${response.status} - ${errorText}`
-        );
-      }
-
-      const data = await response.json();
-
-      logger.info('Post status retrieved', { postId, data });
-
-      return data;
-    } catch (error) {
-      logger.error('Failed to get post status', { postId, error });
-      throw error;
-    }
-  }
-
-  /**
-   * Simplified upload method for quick integration
-   * Uses sensible defaults
-   */
-  public async uploadWithDefaults(
-    filePath: string,
-    caption: string
-  ): Promise<TikTokUploadResponse> {
-    return this.uploadVideo({
-      filePath,
-      caption,
-      visibility: 'public',
-      disableComment: false,
-      disableDuet: false,
-      disableStitch: false,
-    });
+    }[visibility];
   }
 }

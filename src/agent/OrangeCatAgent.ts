@@ -1,54 +1,73 @@
-import { StoryGenerator } from '../story/StoryGenerator';
-import { KlingPromptBuilder } from '../prompt/KlingPromptBuilder';
-import { KlingClient } from '../clients/KlingClient';
-import { TikTokClient } from '../clients/TikTokClient';
+import { join } from 'path';
+import { StoryService } from '../llm/StoryService';
+import { EvalService } from '../llm/EvalService';
 import { CaptionGenerator } from '../caption/CaptionGenerator';
-import { OpenAIStoryService } from '../services/OpenAIStoryService';
+import { TikTokClient } from '../clients/TikTokClient';
+import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
+import { OpenRouterVideoClient } from '../clients/OpenRouterVideoClient';
+import { ElevenLabsClient } from '../clients/ElevenLabsClient';
+import { CharacterReferenceCache } from '../services/CharacterReferenceCache';
 import { VideoValidator } from '../services/VideoValidator';
+import { ImageService, SceneKeyframeResult } from '../media/ImageService';
+import { VideoClipService, SceneClipResult } from '../media/VideoClipService';
+import {
+  NarrationService,
+  SceneNarrationResult,
+} from '../media/NarrationService';
+import { Compositor } from '../media/Compositor';
 import { StatisticsTracker } from '../services/StatisticsTracker';
 import { APIRateLimiters } from '../utils/RateLimiter';
 import { Config } from '../utils/config';
 import { logger } from '../utils/logger';
 import { Story } from '../story/types';
-import { join } from 'path';
-import { mkdir } from 'fs/promises';
 
-/**
- * Result of a successful agent run
- */
 export interface AgentRunResult {
   success: boolean;
   story: Story;
-  klingJobId: string;
-  videoPath: string;
-  videoValid?: boolean;
+  keyframes?: SceneKeyframeResult[];
+  clips?: SceneClipResult[];
+  narrations?: SceneNarrationResult[];
+  videoPath?: string;
   videoSizeBytes?: number;
   tiktokPostId?: string;
   tiktokShareUrl?: string;
   error?: string;
-  duration: number; // milliseconds
+  duration: number;
 }
 
 /**
- * OrangeCatAgent - Main orchestrator for the automated content pipeline
+ * OrangeCatAgent — orchestrates the per-scene generation pipeline.
  *
- * Flow:
- * 1. Generate story
- * 2. Build Kling prompt
- * 3. Create video with Kling
- * 4. Poll until video ready
- * 5. Download video
- * 6. Generate caption
- * 7. Upload to TikTok
+ * Pipeline (target end-state):
+ *   Story (LLM)
+ *     └─► Character reference image                      [Phase 2]
+ *     └─► For each scene (parallel, p-limited):
+ *           1. Keyframe image (text+ref → image)         [Phase 2]
+ *           2. Video clip   (image-to-video, OpenRouter) [Phase 3]
+ *           3. TTS narration (ElevenLabs)                [Phase 4]
+ *           4. VLM eval gate (1 retry)                   [Phase 5]
+ *     └─► Compositor (ffmpeg concat + audio mix + ASS)   [Phase 4]
+ *     └─► TikTok upload                                  [implemented]
+ *     └─► Statistics                                     [implemented]
+ *
+ * Currently implemented stages: story generation, caption generation,
+ * statistics, TikTok upload (preserved). Video / image / narration /
+ * eval / compositing are stubbed and throw NotImplementedError until
+ * the corresponding phase lands.
  */
 export class OrangeCatAgent {
-  private storyGenerator: StoryGenerator;
-  private openaiStoryService?: OpenAIStoryService;
-  private promptBuilder: KlingPromptBuilder;
-  private klingClient: KlingClient;
-  private tiktokClient: TikTokClient;
-  private captionGenerator: CaptionGenerator;
+  private storyService: StoryService;
+  private imageClient: OpenRouterImageClient;
+  private videoClient: OpenRouterVideoClient;
+  private elevenLabsClient: ElevenLabsClient;
+  private characterCache: CharacterReferenceCache;
+  private imageService: ImageService;
+  private videoClipService: VideoClipService;
+  private narrationService: NarrationService;
+  private compositor: Compositor;
   private videoValidator: VideoValidator;
+  private captionGenerator: CaptionGenerator;
+  private tiktokClient: TikTokClient;
   private statisticsTracker: StatisticsTracker;
   private rateLimiters: APIRateLimiters;
   private config: Config;
@@ -56,161 +75,149 @@ export class OrangeCatAgent {
   constructor(config: Config) {
     this.config = config;
 
-    // Initialize all components
-    this.storyGenerator = new StoryGenerator(
-      config.kling.videoDurationSeconds
-    );
-
-    // Initialize OpenAI service if enabled
-    if (config.openai.useForStories && config.openai.apiKey) {
-      this.openaiStoryService = new OpenAIStoryService(
-        config.openai.apiKey,
-        config.openai.model,
-        config.kling.videoDurationSeconds
-      );
-      logger.info('OpenAI story generation enabled', {
-        model: config.openai.model,
-      });
-    }
-
-    this.promptBuilder = new KlingPromptBuilder();
-    this.klingClient = new KlingClient({
-      apiKey: config.kling.apiKey,
-      baseUrl: config.kling.baseUrl,
-      maxPollAttempts: config.kling.maxPollAttempts,
-      pollIntervalMs: config.kling.pollIntervalMs,
+    this.storyService = new StoryService(config.openrouter, {
+      targetDurationSeconds: config.pipeline.videoDurationSeconds,
     });
+    this.imageClient = new OpenRouterImageClient(config.openrouter);
+    this.videoClient = new OpenRouterVideoClient(config.openrouter, {
+      maxPollAttempts: config.pipeline.maxPollAttempts,
+      pollIntervalMs: config.pipeline.pollIntervalMs,
+    });
+    this.elevenLabsClient = new ElevenLabsClient(config.elevenlabs);
+    this.characterCache = new CharacterReferenceCache(
+      this.imageClient,
+      config.openrouter.imageModel,
+      config.pipeline.characterRefDir
+    );
+    const evalService =
+      config.pipeline.evalRetriesPerScene > 0
+        ? new EvalService(config.openrouter)
+        : undefined;
+    this.imageService = new ImageService(
+      this.imageClient,
+      this.characterCache,
+      config.openrouter.imageModel,
+      {
+        evalService,
+        evalRetriesPerScene: config.pipeline.evalRetriesPerScene,
+      }
+    );
+    this.videoClipService = new VideoClipService(
+      this.videoClient,
+      config.openrouter.videoModel
+    );
+    this.narrationService = new NarrationService(
+      this.elevenLabsClient,
+      config.elevenlabs.voicesByMood
+    );
+    this.compositor = new Compositor();
+    this.videoValidator = new VideoValidator(
+      config.pipeline.videoDurationSeconds
+    );
+    this.captionGenerator = new CaptionGenerator();
     this.tiktokClient = new TikTokClient({
       apiKey: config.tiktok.apiKey,
       baseUrl: config.tiktok.baseUrl,
     });
-    this.captionGenerator = new CaptionGenerator();
-    this.videoValidator = new VideoValidator(config.kling.videoDurationSeconds);
     this.statisticsTracker = new StatisticsTracker();
     this.rateLimiters = new APIRateLimiters();
 
     logger.info('OrangeCatAgent initialized', {
-      useOpenAI: !!this.openaiStoryService,
-      videoDuration: config.kling.videoDurationSeconds,
-      downloadPath: config.video.downloadPath,
-      videoValidation: true,
-      statisticsTracking: true,
-      rateLimiting: true,
+      llmModel: config.openrouter.llmModel,
+      imageModel: config.openrouter.imageModel,
+      videoModel: config.openrouter.videoModel,
+      videoDurationSeconds: config.pipeline.videoDurationSeconds,
+      sceneConcurrency: config.pipeline.sceneConcurrency,
     });
   }
 
-  /**
-   * Initialize the agent (async initialization)
-   */
   public async initialize(): Promise<void> {
     await this.statisticsTracker.initialize();
     logger.info('OrangeCatAgent fully initialized');
   }
 
-  /**
-   * Run the complete agent workflow once
-   */
   public async runOnce(): Promise<AgentRunResult> {
     const startTime = Date.now();
-
-    logger.info('🚀 Starting OrangeCatAgent workflow');
-
+    const runId = new Date().toISOString().replace(/[:.]/g, '-');
+    const runDir = join(this.config.pipeline.videoDownloadPath, `run-${runId}`);
     let story: Story | undefined;
-    let klingJobId = '';
-    let videoPath = '';
+    let keyframes: SceneKeyframeResult[] | undefined;
+    let clips: SceneClipResult[] | undefined;
+    let narrations: SceneNarrationResult[] | undefined;
+    let videoPath: string | undefined;
     let videoSizeBytes: number | undefined;
 
     try {
-      // Step 1: Generate story (with rate limiting for OpenAI)
-      logger.info('📖 Step 1/8: Generating story');
+      logger.info('🚀 Starting OrangeCatAgent run', { runId, runDir });
 
-      if (this.openaiStoryService) {
-        logger.info('Using OpenAI to generate story');
-        await this.rateLimiters.openai.consume('story-generation');
-        story = await this.openaiStoryService.generateStoryWithRetry();
-      } else {
-        logger.info('Using template-based story generation');
-        story = this.storyGenerator.generateStory();
+      // Step 1: Generate story
+      logger.info('📖 Step 1/7: Generating story');
+      await this.rateLimiters.openrouterLLM.consume('story-generation');
+      story = await this.storyService.generateStory();
+
+      // Step 2: Per-scene keyframes
+      logger.info('🎨 Step 2/7: Generating scene keyframes');
+      const keyframeDir = join(runDir, 'keyframes');
+      for (let i = 0; i < story.scenes.length; i++) {
+        await this.rateLimiters.openrouterImage.consume('keyframe');
       }
-
-      logger.info('Story generated', {
-        archetype: story.archetype,
-        title: story.title,
-        scenes: story.scenes.length,
-        generatedBy: this.openaiStoryService ? 'OpenAI' : 'Templates',
+      keyframes = await this.imageService.generateAllKeyframes({
+        story,
+        outputDir: keyframeDir,
+        concurrency: this.config.pipeline.sceneConcurrency,
       });
 
-      // Step 2: Build Kling prompt
-      logger.info('✍️  Step 2/8: Building Kling prompt');
-      const prompt = this.promptBuilder.buildPrompt(story);
-      const promptStats = this.promptBuilder.getPromptStats(prompt);
-      logger.info('Prompt built', promptStats);
-
-      // Step 3: Create video with Kling (with rate limiting)
-      logger.info('🎬 Step 3/8: Creating video with Kling AI');
-      await this.rateLimiters.kling.consume('video-creation');
-      klingJobId = await this.klingClient.createVideo(prompt, {
-        aspectRatio: this.config.kling.aspectRatio,
-        durationSeconds: this.config.kling.videoDurationSeconds,
-        quality: 'high',
-      });
-      logger.info('Video creation job started', { klingJobId });
-
-      // Step 4: Poll until video ready
-      logger.info('⏳ Step 4/8: Waiting for video generation to complete');
-      const videoUrl = await this.klingClient.waitForCompletion(klingJobId);
-      logger.info('Video generation completed', { videoUrl });
-
-      // Step 5: Download video
-      logger.info('💾 Step 5/8: Downloading video');
-      videoPath = await this.downloadVideo(klingJobId, videoUrl);
-      logger.info('Video downloaded', { videoPath });
-
-      // Step 5.5: Validate video
-      logger.info('✔️  Step 5.5/8: Validating video');
-      const validationResult = await this.videoValidator.validateVideo(videoPath);
-      videoSizeBytes = validationResult.metadata.sizeBytes;
-
-      if (!validationResult.valid) {
-        const summary = this.videoValidator.getValidationSummary(validationResult);
-        logger.error('Video validation failed', { summary });
-        throw new Error(`Video validation failed: ${validationResult.errors.join(', ')}`);
+      // Step 3: Per-scene video clips (image-to-video, parallel)
+      logger.info('🎬 Step 3/7: Generating scene video clips');
+      const clipDir = join(runDir, 'clips');
+      for (let i = 0; i < story.scenes.length; i++) {
+        await this.rateLimiters.openrouterVideo.consume('clip');
       }
-
-      if (validationResult.warnings.length > 0) {
-        logger.warn('Video validation warnings', {
-          warnings: validationResult.warnings,
-        });
-      }
-
-      logger.info('Video validated successfully', {
-        sizeBytes: validationResult.metadata.sizeBytes,
-        sizeMB: validationResult.metadata.sizeMB,
+      clips = await this.videoClipService.generateAllClips({
+        story,
+        keyframes,
+        outputDir: clipDir,
+        concurrency: this.config.pipeline.sceneConcurrency,
       });
 
-      // Step 6: Generate caption
-      logger.info('📝 Step 6/8: Generating TikTok caption');
+      // Step 4: TTS narration per scene (ElevenLabs, per-mood voices)
+      logger.info('🗣️  Step 4/7: Generating narration');
+      const narrationDir = join(runDir, 'narration');
+      for (let i = 0; i < story.scenes.length; i++) {
+        await this.rateLimiters.elevenlabs.consume('narration');
+      }
+      narrations = await this.narrationService.generateAll({
+        story,
+        outputDir: narrationDir,
+        concurrency: this.config.pipeline.sceneConcurrency,
+      });
+
+      // Step 5: Compose final video (ffmpeg)
+      logger.info('🎞️  Step 5/7: Composing final video');
+      const composeDir = join(runDir, 'compose');
+      const finalPath = join(runDir, 'final.mp4');
+      const composeResult = await this.compositor.compose({
+        story,
+        clips,
+        narrations,
+        outputDir: composeDir,
+        outputPath: finalPath,
+      });
+      videoPath = composeResult.path;
+
+      // Step 6: Validate composed output
+      logger.info('✔️  Step 6/7: Validating composed video');
+      const validation = await this.videoValidator.validateVideo(videoPath);
+      videoSizeBytes = validation.metadata.sizeBytes;
+      if (!validation.valid) {
+        throw new Error(
+          `Composed video failed validation: ${validation.errors.join(', ')}`
+        );
+      }
+
+      // Step 7: Upload to TikTok
+      logger.info('📤 Step 7/7: Uploading to TikTok');
       const caption = this.captionGenerator.generateCaption(story);
-      const captionValidation = this.captionGenerator.validateCaption(caption);
-
-      if (!captionValidation.valid) {
-        logger.warn('Caption validation warnings', {
-          warnings: captionValidation.warnings,
-        });
-        // Use short caption if regular one is too long
-        const shortCaption = this.captionGenerator.generateShortCaption(story);
-        logger.info('Using short caption due to length', {
-          length: shortCaption.length,
-        });
-      }
-
-      logger.info('Caption generated', {
-        length: caption.length,
-        valid: captionValidation.valid,
-      });
-
-      // Step 7: Upload to TikTok (with rate limiting)
-      logger.info('📤 Step 7/8: Uploading to TikTok');
       await this.rateLimiters.tiktok.consume('video-upload');
       const tiktokResult = await this.tiktokClient.uploadVideo({
         filePath: videoPath,
@@ -218,42 +225,32 @@ export class OrangeCatAgent {
         visibility: this.config.tiktok.visibility,
       });
 
-      logger.info('Video uploaded to TikTok', {
-        postId: tiktokResult.postId,
-        status: tiktokResult.status,
-        shareUrl: tiktokResult.shareUrl,
-      });
-
       const duration = Date.now() - startTime;
 
-      // Step 8: Record statistics
-      logger.info('📊 Step 8/8: Recording statistics');
       await this.statisticsTracker.recordRun({
         timestamp: new Date().toISOString(),
         success: true,
         archetype: story.archetype,
-        storyGenerationMethod: this.openaiStoryService ? 'OpenAI' : 'Templates',
+        storyGenerationMethod: this.config.openrouter.llmModel,
         duration,
-        klingJobId,
         tiktokPostId: tiktokResult.postId,
         tiktokShareUrl: tiktokResult.shareUrl,
         videoSize: videoSizeBytes,
         sceneCount: story.scenes.length,
       });
 
-      logger.info('✅ OrangeCatAgent workflow completed successfully', {
+      logger.info('✅ Run completed successfully', {
         durationMs: duration,
-        durationMinutes: (duration / 60000).toFixed(2),
-        klingJobId,
         tiktokPostId: tiktokResult.postId,
       });
 
       return {
         success: true,
         story,
-        klingJobId,
+        keyframes,
+        clips,
+        narrations,
         videoPath,
-        videoValid: true,
         videoSizeBytes,
         tiktokPostId: tiktokResult.postId,
         tiktokShareUrl: tiktokResult.shareUrl,
@@ -263,31 +260,39 @@ export class OrangeCatAgent {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
 
-      logger.error('❌ OrangeCatAgent workflow failed', {
+      logger.error('❌ OrangeCatAgent run failed', {
         error: errorMessage,
-        stack: error instanceof Error ? error.stack : undefined,
         durationMs: duration,
       });
 
-      // Record failed run in statistics
       if (story) {
         await this.statisticsTracker.recordRun({
           timestamp: new Date().toISOString(),
           success: false,
           archetype: story.archetype,
-          storyGenerationMethod: this.openaiStoryService ? 'OpenAI' : 'Templates',
+          storyGenerationMethod: this.config.openrouter.llmModel,
           duration,
-          klingJobId,
           error: errorMessage,
-          videoSize: videoSizeBytes,
           sceneCount: story.scenes.length,
         });
       }
 
       return {
         success: false,
-        story: story || this.storyGenerator.generateStory(), // Return actual story or placeholder
-        klingJobId,
+        story:
+          story ??
+          ({
+            archetype: 'RagsToRiches',
+            title: '(no story generated)',
+            narrative: '',
+            totalDurationSeconds: 0,
+            scenes: [],
+            overallMood: 'heartwarming',
+            musicStyle: '',
+          } as Story),
+        keyframes,
+        clips,
+        narrations,
         videoPath,
         videoSizeBytes,
         error: errorMessage,
@@ -296,145 +301,112 @@ export class OrangeCatAgent {
     }
   }
 
-  /**
-   * Download video to local storage
-   */
-  private async downloadVideo(
-    jobId: string,
-    videoUrl: string
-  ): Promise<string> {
-    // Ensure download directory exists
-    await mkdir(this.config.video.downloadPath, { recursive: true });
-
-    // Generate unique filename
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `oc-${jobId}-${timestamp}.mp4`;
-    const videoPath = join(this.config.video.downloadPath, filename);
-
-    // Download video
-    await this.klingClient.downloadVideo(videoUrl, videoPath);
-
-    return videoPath;
-  }
-
-  /**
-   * Run workflow multiple times in sequence
-   */
   public async runMultiple(count: number): Promise<AgentRunResult[]> {
     logger.info(`Running agent ${count} times sequentially`);
-
     const results: AgentRunResult[] = [];
-
     for (let i = 0; i < count; i++) {
       logger.info(`Starting run ${i + 1}/${count}`);
-
       const result = await this.runOnce();
       results.push(result);
-
-      if (!result.success) {
-        logger.warn(`Run ${i + 1} failed, continuing to next run`);
-      }
-
-      // Add delay between runs to avoid rate limiting
       if (i < count - 1) {
-        const delayMs = 5000;
-        logger.info(`Waiting ${delayMs}ms before next run`);
-        await this.sleep(delayMs);
+        await this.sleep(5000);
       }
     }
-
     const successCount = results.filter((r) => r.success).length;
     logger.info(`Completed ${count} runs`, {
       successful: successCount,
       failed: count - successCount,
     });
-
     return results;
   }
 
   /**
-   * Dry run - generate story and prompt without calling APIs
+   * Regenerate a single scene (keyframe → clip → narration) from a saved story.
+   * Useful as a dev loop — fix one bad scene without re-running the full
+   * pipeline or paying for re-generations of the other scenes.
    */
-  public async dryRun(): Promise<{
+  public async regenerateScene(opts: {
     story: Story;
-    prompt: string;
-    caption: string;
+    sceneIndex: number;
+    outputDir: string;
+  }): Promise<{
+    keyframe: SceneKeyframeResult;
+    clip: SceneClipResult;
+    narration: SceneNarrationResult;
   }> {
-    logger.info('🧪 Running dry run (no API calls)');
-
-    let story: Story;
-
-    if (this.openaiStoryService) {
-      logger.info('Generating story with OpenAI');
-      story = await this.openaiStoryService.generateStoryWithRetry();
-    } else {
-      logger.info('Generating story with templates');
-      story = this.storyGenerator.generateStory();
+    if (opts.sceneIndex < 0 || opts.sceneIndex >= opts.story.scenes.length) {
+      throw new Error(
+        `sceneIndex ${opts.sceneIndex} out of range (story has ${opts.story.scenes.length} scenes)`
+      );
     }
+    const scene = opts.story.scenes[opts.sceneIndex];
 
-    const prompt = this.promptBuilder.buildPrompt(story);
-    const caption = this.captionGenerator.generateCaption(story);
-
-    logger.info('Dry run completed', {
-      archetype: story.archetype,
-      title: story.title,
-      promptLength: prompt.length,
-      captionLength: caption.length,
-      generatedBy: this.openaiStoryService ? 'OpenAI' : 'Templates',
+    logger.info('Regenerating single scene', {
+      sceneIndex: opts.sceneIndex,
+      outputDir: opts.outputDir,
     });
 
-    // Log the outputs for inspection
-    console.log('\n=== STORY ===');
-    console.log(JSON.stringify(story, null, 2));
+    await this.rateLimiters.openrouterImage.consume('keyframe');
+    const keyframe = await this.imageService.generateKeyframe({
+      story: opts.story,
+      scene,
+      sceneIndex: opts.sceneIndex,
+      outputDir: join(opts.outputDir, 'keyframes'),
+    });
 
-    console.log('\n=== KLING PROMPT ===');
-    console.log(prompt);
+    await this.rateLimiters.openrouterVideo.consume('clip');
+    const clip = await this.videoClipService.generateClip({
+      scene,
+      sceneIndex: opts.sceneIndex,
+      keyframePath: keyframe.path,
+      outputDir: join(opts.outputDir, 'clips'),
+    });
 
-    console.log('\n=== TIKTOK CAPTION ===');
-    console.log(caption);
+    await this.rateLimiters.elevenlabs.consume('narration');
+    const [narration] = await this.narrationService.generateAll({
+      story: { ...opts.story, scenes: [scene] },
+      outputDir: join(opts.outputDir, 'narration'),
+      concurrency: 1,
+    });
 
-    return { story, prompt, caption };
-  }
-
-  /**
-   * Utility: Sleep helper
-   */
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Get agent statistics and status
-   */
-  public getStatus(): {
-    config: Config;
-    componentsInitialized: boolean;
-  } {
     return {
-      config: this.config,
-      componentsInitialized: true,
+      keyframe,
+      clip,
+      narration: { ...narration, sceneIndex: opts.sceneIndex },
     };
   }
 
   /**
-   * Get statistics report
+   * Dry run — exercises only the LLM stage (story + caption).
+   * Useful for validating Phase 1 in isolation before later phases land.
    */
+  public async dryRun(): Promise<{ story: Story; caption: string }> {
+    logger.info('🧪 Running dry run (LLM only)');
+    const story = await this.storyService.generateStory();
+    const caption = this.captionGenerator.generateCaption(story);
+
+    console.log('\n=== STORY ===');
+    console.log(JSON.stringify(story, null, 2));
+    console.log('\n=== TIKTOK CAPTION ===');
+    console.log(caption);
+
+    return { story, caption };
+  }
+
   public getStatisticsReport(): string {
     return this.statisticsTracker.getFormattedReport();
   }
 
-  /**
-   * Get statistics tracker (for detailed access)
-   */
   public getStatistics() {
     return this.statisticsTracker;
   }
 
-  /**
-   * Cleanup and shutdown
-   */
   public shutdown(): void {
     this.rateLimiters.stopAll();
     logger.info('OrangeCatAgent shutdown');
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
