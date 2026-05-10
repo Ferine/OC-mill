@@ -36,7 +36,16 @@ PASS criteria — ALL must hold:
 
 FAIL on any of: missing cat, wrong-color cat, thin/skinny cat, multiple cats, off-prompt environment, watermarks, garbled visuals.
 
-When you fail an image, give specific, actionable feedback the image generator can use to fix it on the next attempt (e.g. "cat is not chubby enough — emphasize round belly").
+DO NOT evaluate aspect ratio, image dimensions, framing tightness, or cropping.
+These are normalized in post-processing (the compositor scales+crops to
+1080x1920 and the video model is given an explicit aspect_ratio). A square or
+slightly off-aspect image is fine as long as the subject matter is correct.
+
+When you fail an image, give specific, actionable feedback about the SUBJECT
+or SCENE CONTENT that the image generator can fix on the next attempt
+(e.g. "cat is not chubby enough — emphasize round belly", "wrong environment
+— should be a rainy alley not a bedroom"). Do not give feedback about
+dimensions or aspect.
 
 Return your verdict as JSON matching the provided schema. Be honest — false passes ship bad content.`;
 

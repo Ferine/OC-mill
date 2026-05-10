@@ -156,11 +156,11 @@ export class OrangeCatAgent {
       story = await this.storyService.generateStory();
 
       // Step 2: Per-scene keyframes
+      // Note: no pre-consume loop — `sceneConcurrency` provides backpressure
+      // and the OpenRouter clients handle 429/5xx with retry. The local
+      // rate limiter is still wired up for single-call stages (story, upload).
       logger.info('🎨 Step 2/7: Generating scene keyframes');
       const keyframeDir = join(runDir, 'keyframes');
-      for (let i = 0; i < story.scenes.length; i++) {
-        await this.rateLimiters.openrouterImage.consume('keyframe');
-      }
       keyframes = await this.imageService.generateAllKeyframes({
         story,
         outputDir: keyframeDir,
@@ -170,9 +170,6 @@ export class OrangeCatAgent {
       // Step 3: Per-scene video clips (image-to-video, parallel)
       logger.info('🎬 Step 3/7: Generating scene video clips');
       const clipDir = join(runDir, 'clips');
-      for (let i = 0; i < story.scenes.length; i++) {
-        await this.rateLimiters.openrouterVideo.consume('clip');
-      }
       clips = await this.videoClipService.generateAllClips({
         story,
         keyframes,
@@ -183,9 +180,6 @@ export class OrangeCatAgent {
       // Step 4: TTS narration per scene (ElevenLabs, per-mood voices)
       logger.info('🗣️  Step 4/7: Generating narration');
       const narrationDir = join(runDir, 'narration');
-      for (let i = 0; i < story.scenes.length; i++) {
-        await this.rateLimiters.elevenlabs.consume('narration');
-      }
       narrations = await this.narrationService.generateAll({
         story,
         outputDir: narrationDir,

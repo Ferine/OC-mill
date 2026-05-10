@@ -103,18 +103,11 @@ export class OpenRouterVideoClient {
       refCount: opts.referenceImages?.length ?? 0,
     });
 
-    const response = await fetch(`${this.cfg.baseUrl}/videos`, {
-      method: 'POST',
-      headers: this.headers(),
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-      const txt = await response.text();
-      throw new Error(
-        `Video job creation failed: ${response.status} ${response.statusText} — ${txt.slice(0, 500)}`
-      );
-    }
-    const data = (await response.json()) as { id?: string; job_id?: string };
+    const data = await this.requestJson<{ id?: string; job_id?: string }>(
+      'POST',
+      `${this.cfg.baseUrl}/videos`,
+      body
+    );
     const jobId = data.id ?? data.job_id;
     if (!jobId) {
       throw new Error(
@@ -126,18 +119,78 @@ export class OpenRouterVideoClient {
   }
 
   public async getJob(jobId: string): Promise<VideoJob> {
-    const response = await fetch(`${this.cfg.baseUrl}/videos/${jobId}`, {
-      method: 'GET',
-      headers: this.headers(),
-    });
-    if (!response.ok) {
-      const txt = await response.text();
-      throw new Error(
-        `Video job poll failed: ${response.status} ${response.statusText} — ${txt.slice(0, 500)}`
-      );
-    }
-    const data = (await response.json()) as Record<string, unknown>;
+    const data = await this.requestJson<Record<string, unknown>>(
+      'GET',
+      `${this.cfg.baseUrl}/videos/${jobId}`
+    );
     return normalizeJob(jobId, data);
+  }
+
+  /**
+   * Issue an OpenRouter request and return parsed JSON, with defensive
+   * parsing + retry on transient failures (5xx, 429, network, empty body,
+   * invalid JSON). Non-transient errors (4xx other than 429) fail fast.
+   */
+  private async requestJson<T>(
+    method: 'GET' | 'POST',
+    url: string,
+    body?: unknown,
+    maxRetries = 3
+  ): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: this.headers(),
+          body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        const rawText = await response.text();
+
+        if (!response.ok) {
+          const retryable = response.status >= 500 || response.status === 429;
+          throw new VideoApiError(
+            `OpenRouter video API error: ${response.status} ${response.statusText} — ${rawText.slice(0, 500)}`,
+            retryable
+          );
+        }
+        if (!rawText.trim()) {
+          throw new VideoApiError(
+            'OpenRouter returned an empty response body',
+            true
+          );
+        }
+        try {
+          return JSON.parse(rawText) as T;
+        } catch {
+          throw new VideoApiError(
+            `Invalid JSON from OpenRouter (${rawText.length} bytes): ${rawText.slice(0, 200)}`,
+            true
+          );
+        }
+      } catch (err) {
+        lastError = err;
+        const transient =
+          err instanceof VideoApiError
+            ? err.retryable
+            : err instanceof TypeError ||
+              (err instanceof Error &&
+                /fetch failed|ECONN|ETIMEDOUT|socket hang up/i.test(err.message));
+        logger.warn('Video API request failed', {
+          method,
+          url,
+          attempt,
+          willRetry: attempt < maxRetries && transient,
+          transient,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        if (!transient || attempt >= maxRetries) break;
+        await sleep(Math.min(1000 * 2 ** (attempt - 1), 8000));
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new Error('Video API request failed');
   }
 
   public async pollUntilComplete(jobId: string): Promise<VideoJob> {
@@ -195,6 +248,13 @@ export class OpenRouterVideoClient {
       'HTTP-Referer': this.cfg.appUrl,
       'X-Title': this.cfg.appName,
     };
+  }
+}
+
+class VideoApiError extends Error {
+  constructor(message: string, public retryable: boolean) {
+    super(message);
+    this.name = 'VideoApiError';
   }
 }
 

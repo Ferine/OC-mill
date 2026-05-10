@@ -14,6 +14,8 @@ import { logger } from '../utils/logger';
  * To force a regeneration, delete the cache file (e.g. {cacheDir}/RagsToRiches.png).
  */
 export class CharacterReferenceCache {
+  private inFlight = new Map<ArchetypeName, Promise<Buffer>>();
+
   constructor(
     private client: OpenRouterImageClient,
     private model: string,
@@ -21,6 +23,27 @@ export class CharacterReferenceCache {
   ) {}
 
   public async getReference(archetype: ArchetypeName): Promise<Buffer> {
+    // Coalesce concurrent callers so we don't generate the canonical
+    // reference twice when the first run triggers a cache miss on multiple
+    // parallel scenes simultaneously.
+    const existing = this.inFlight.get(archetype);
+    if (existing) {
+      logger.debug('Character reference generation already in flight', {
+        archetype,
+      });
+      return existing;
+    }
+
+    const promise = this.fetchOrGenerate(archetype);
+    this.inFlight.set(archetype, promise);
+    try {
+      return await promise;
+    } finally {
+      this.inFlight.delete(archetype);
+    }
+  }
+
+  private async fetchOrGenerate(archetype: ArchetypeName): Promise<Buffer> {
     const path = this.cachePath(archetype);
     if (await fileExists(path)) {
       logger.info('Character reference cache hit', { archetype, path });

@@ -32,11 +32,13 @@ export class RateLimiter {
   }
 
   /**
-   * Attempt to consume a token for the given key
-   * Returns true if allowed, false if rate limited
+   * Attempt to consume tokens for the given key. Refills lazily on each
+   * call so we don't depend on the background timer firing in time.
+   * Returns true if allowed, false if rate limited.
    */
   public async tryConsume(key: string, tokens: number = 1): Promise<boolean> {
     const bucket = this.getBucket(key);
+    this.refillBucket(bucket);
 
     if (bucket.tokens >= tokens) {
       bucket.tokens -= tokens;
@@ -48,31 +50,36 @@ export class RateLimiter {
       return true;
     }
 
-    logger.warn('Rate limit exceeded', {
-      key,
-      tokensRequested: tokens,
-      tokensAvailable: bucket.tokens,
-    });
     return false;
   }
 
   /**
-   * Wait until tokens are available, then consume
+   * Wait until tokens are available, then consume.
    */
   public async consume(key: string, tokens: number = 1): Promise<void> {
     while (!(await this.tryConsume(key, tokens))) {
-      // Calculate wait time
       const bucket = this.getBucket(key);
-      const tokensNeeded = tokens - bucket.tokens;
-      const waitMs = (tokensNeeded / this.refillRate) * 1000;
-
+      const tokensNeeded = Math.max(0, tokens - bucket.tokens);
+      // Wait long enough for refill to actually yield the missing tokens.
+      // Floor at 100ms so we don't busy-loop on rounding artifacts.
+      const waitMs = Math.max(100, Math.ceil((tokensNeeded / this.refillRate) * 1000));
       logger.info('Waiting for rate limit to refill', {
         key,
-        waitMs: Math.ceil(waitMs),
+        waitMs,
         tokensNeeded,
       });
+      await this.sleep(waitMs);
+    }
+  }
 
-      await this.sleep(Math.ceil(waitMs));
+  private refillBucket(bucket: TokenBucket): void {
+    const now = Date.now();
+    const elapsed = (now - bucket.lastRefill) / 1000;
+    if (elapsed <= 0) return;
+    const add = elapsed * this.refillRate;
+    if (add > 0) {
+      bucket.tokens = Math.min(this.maxTokens, bucket.tokens + add);
+      bucket.lastRefill = now;
     }
   }
 

@@ -33,10 +33,41 @@ interface ChatResponse {
   choices: Array<{ message: ChatMessage }>;
 }
 
+export interface OpenRouterImageClientOptions {
+  maxRetries?: number;
+}
+
 export class OpenRouterImageClient {
-  constructor(private cfg: OpenRouterConfig) {}
+  private maxRetries: number;
+
+  constructor(private cfg: OpenRouterConfig, opts: OpenRouterImageClientOptions = {}) {
+    this.maxRetries = opts.maxRetries ?? 3;
+  }
 
   public async generate(opts: ImageGenerateOptions): Promise<Buffer> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        return await this.generateOnce(opts);
+      } catch (err) {
+        lastError = err;
+        const transient = isTransient(err);
+        logger.warn('Image generation attempt failed', {
+          attempt,
+          willRetry: attempt < this.maxRetries && transient,
+          transient,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        if (!transient || attempt >= this.maxRetries) break;
+        await sleep(Math.min(1000 * 2 ** (attempt - 1), 8000));
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new Error('Image generation failed');
+  }
+
+  private async generateOnce(opts: ImageGenerateOptions): Promise<Buffer> {
     const userContent: ChatContentPart[] = [
       { type: 'text', text: opts.prompt },
     ];
@@ -68,22 +99,62 @@ export class OpenRouterImageClient {
       }),
     });
 
+    const rawText = await response.text();
+
     if (!response.ok) {
-      const body = await response.text();
-      throw new Error(
-        `OpenRouter image generation failed: ${response.status} ${response.statusText} — ${body.slice(0, 500)}`
+      throw new ImageGenError(
+        `OpenRouter image generation failed: ${response.status} ${response.statusText} — ${rawText.slice(0, 500)}`,
+        response.status >= 500 || response.status === 429
       );
     }
 
-    const data = (await response.json()) as ChatResponse;
+    if (!rawText.trim()) {
+      throw new ImageGenError(
+        'OpenRouter returned an empty response body for image generation',
+        true
+      );
+    }
+
+    let data: ChatResponse;
+    try {
+      data = JSON.parse(rawText) as ChatResponse;
+    } catch (err) {
+      throw new ImageGenError(
+        `Invalid JSON from OpenRouter (${rawText.length} bytes): ${rawText.slice(0, 200)}`,
+        true
+      );
+    }
+
     const dataUrl = extractImageDataUrl(data);
     if (!dataUrl) {
-      throw new Error(
-        `No image found in OpenRouter response: ${JSON.stringify(data).slice(0, 500)}`
+      throw new ImageGenError(
+        `No image found in OpenRouter response: ${rawText.slice(0, 500)}`,
+        true
       );
     }
     return dataUrlToBuffer(dataUrl);
   }
+}
+
+class ImageGenError extends Error {
+  constructor(message: string, public retryable: boolean) {
+    super(message);
+    this.name = 'ImageGenError';
+  }
+}
+
+function isTransient(err: unknown): boolean {
+  if (err instanceof ImageGenError) return err.retryable;
+  // Native fetch network errors / aborts — treat as transient.
+  if (err instanceof TypeError) return true;
+  if (err instanceof Error && /fetch failed|ECONN|ETIMEDOUT|socket hang up/i.test(err.message)) {
+    return true;
+  }
+  return false;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function bufferToDataUrl(buf: Buffer): string {
