@@ -10,13 +10,12 @@ export interface OpenRouterConfig {
   imageModel: string;
   videoModel: string;
   vlmModel: string;
+  ttsModel: string;
   appName: string;
   appUrl: string;
 }
 
-export interface ElevenLabsConfig {
-  apiKey: string;
-  model: string;
+export interface TTSConfig {
   voicesByMood: Record<string, string>;
 }
 
@@ -45,7 +44,7 @@ export interface SchedulingConfig {
 
 export interface Config {
   openrouter: OpenRouterConfig;
-  elevenlabs: ElevenLabsConfig;
+  tts: TTSConfig;
   pipeline: PipelineConfig;
   tiktok: TikTokConfig;
   scheduling: SchedulingConfig;
@@ -63,7 +62,7 @@ function requireEnv(keys: string[]): void {
 }
 
 export function loadConfig(): Config {
-  requireEnv(['OPENROUTER_API_KEY', 'ELEVENLABS_API_KEY', 'TIKTOK_API_KEY']);
+  requireEnv(['OPENROUTER_API_KEY', 'TIKTOK_API_KEY']);
 
   const config: Config = {
     openrouter: {
@@ -73,19 +72,22 @@ export function loadConfig(): Config {
       imageModel: process.env.OPENROUTER_IMAGE_MODEL || 'openai/gpt-5.4-image-2',
       videoModel: process.env.OPENROUTER_VIDEO_MODEL || 'bytedance/seedance-2.0',
       vlmModel: process.env.OPENROUTER_VLM_MODEL || 'openai/gpt-5',
+      ttsModel:
+        process.env.OPENROUTER_TTS_MODEL || 'google/gemini-3.1-flash-tts-preview',
       appName: process.env.OPENROUTER_APP_NAME || 'oc-mill',
       appUrl: process.env.OPENROUTER_APP_URL || 'https://github.com/ferine/oc-mill',
     },
-    elevenlabs: {
-      apiKey: process.env.ELEVENLABS_API_KEY!,
-      model: process.env.ELEVENLABS_MODEL || 'eleven_multilingual_v2',
+    tts: {
+      // Gemini 3.1 Flash TTS prebuilt voice names. Override any of these to
+      // retune the brand voices. Other TTS models on OpenRouter will accept
+      // their own voice IDs here (just swap OPENROUTER_TTS_MODEL too).
       voicesByMood: {
-        heartwarming: process.env.ELEVENLABS_VOICE_HEARTWARMING || '21m00Tcm4TlvDq8ikWAM',
-        funny: process.env.ELEVENLABS_VOICE_FUNNY || 'AZnzlk1XvdvUeBnXmlld',
-        dramatic: process.env.ELEVENLABS_VOICE_DRAMATIC || 'ErXwobaYiN019PkySvjV',
-        sad: process.env.ELEVENLABS_VOICE_SAD || 'MF3mGyEYCl7XYWbV9V6O',
-        hopeful: process.env.ELEVENLABS_VOICE_HOPEFUL || 'TxGEqnHWrfWFTfGW9XjX',
-        epic: process.env.ELEVENLABS_VOICE_EPIC || 'VR6AewLTigWG4xSOukaG',
+        heartwarming: process.env.TTS_VOICE_HEARTWARMING || 'Aoede',
+        funny: process.env.TTS_VOICE_FUNNY || 'Puck',
+        dramatic: process.env.TTS_VOICE_DRAMATIC || 'Charon',
+        sad: process.env.TTS_VOICE_SAD || 'Leda',
+        hopeful: process.env.TTS_VOICE_HOPEFUL || 'Kore',
+        epic: process.env.TTS_VOICE_EPIC || 'Fenrir',
       },
     },
     pipeline: {
@@ -117,6 +119,7 @@ export function loadConfig(): Config {
     llmModel: config.openrouter.llmModel,
     imageModel: config.openrouter.imageModel,
     videoModel: config.openrouter.videoModel,
+    ttsModel: config.openrouter.ttsModel,
     sceneConcurrency: config.pipeline.sceneConcurrency,
     clipDurationSeconds: config.pipeline.clipDurationSeconds,
   });

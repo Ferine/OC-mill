@@ -6,7 +6,7 @@ import { CaptionGenerator } from '../caption/CaptionGenerator';
 import { TikTokClient } from '../clients/TikTokClient';
 import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
 import { OpenRouterVideoClient } from '../clients/OpenRouterVideoClient';
-import { ElevenLabsClient } from '../clients/ElevenLabsClient';
+import { OpenRouterTTSClient } from '../clients/OpenRouterTTSClient';
 import { CharacterReferenceCache } from '../services/CharacterReferenceCache';
 import { VideoValidator } from '../services/VideoValidator';
 import { ImageService, SceneKeyframeResult } from '../media/ImageService';
@@ -55,7 +55,7 @@ export interface AgentRunResult {
  *     └─► For each scene (parallel, p-limited):
  *           1. Keyframe image (text+ref → image)         [Phase 2]
  *           2. Video clip   (image-to-video, OpenRouter) [Phase 3]
- *           3. TTS narration (ElevenLabs)                [Phase 4]
+ *           3. TTS narration (OpenRouter TTS)            [Phase 4]
  *           4. VLM eval gate (1 retry)                   [Phase 5]
  *     └─► Compositor (ffmpeg concat + audio mix + ASS)   [Phase 4]
  *     └─► TikTok upload                                  [implemented]
@@ -70,7 +70,7 @@ export class OrangeCatAgent {
   private storyService: StoryService;
   private imageClient: OpenRouterImageClient;
   private videoClient: OpenRouterVideoClient;
-  private elevenLabsClient: ElevenLabsClient;
+  private ttsClient: OpenRouterTTSClient;
   private characterCache: CharacterReferenceCache;
   private imageService: ImageService;
   private videoClipService: VideoClipService;
@@ -94,7 +94,10 @@ export class OrangeCatAgent {
       maxPollAttempts: config.pipeline.maxPollAttempts,
       pollIntervalMs: config.pipeline.pollIntervalMs,
     });
-    this.elevenLabsClient = new ElevenLabsClient(config.elevenlabs);
+    this.ttsClient = new OpenRouterTTSClient(
+      config.openrouter,
+      config.openrouter.ttsModel
+    );
     this.characterCache = new CharacterReferenceCache(
       this.imageClient,
       config.openrouter.imageModel,
@@ -118,8 +121,8 @@ export class OrangeCatAgent {
       config.openrouter.videoModel
     );
     this.narrationService = new NarrationService(
-      this.elevenLabsClient,
-      config.elevenlabs.voicesByMood
+      this.ttsClient,
+      config.tts.voicesByMood
     );
     this.compositor = new Compositor();
     this.videoValidator = new VideoValidator(
@@ -235,7 +238,7 @@ export class OrangeCatAgent {
       });
       events?.publish({ type: 'stage.done', stage: 'clips' });
 
-      // Step 4: TTS narration per scene (ElevenLabs, per-mood voices)
+      // Step 4: TTS narration per scene (OpenRouter TTS, per-mood voices)
       logger.info('🗣️  Step 4/7: Generating narration');
       events?.publish({ type: 'stage.start', stage: 'narration' });
       const narrationDir = join(runDir, 'narration');
@@ -476,7 +479,7 @@ export class OrangeCatAgent {
       outputDir: join(opts.outputDir, 'clips'),
     });
 
-    await this.rateLimiters.elevenlabs.consume('narration');
+    await this.rateLimiters.tts.consume('narration');
     const [narration] = await this.narrationService.generateAll({
       story: { ...opts.story, scenes: [scene] },
       outputDir: join(opts.outputDir, 'narration'),

@@ -196,9 +196,20 @@ export class Compositor {
  * Build a per-scene ASS subtitle file. One Dialogue event covering the
  * full scene duration, styled for TikTok meme look (white text, thick
  * black outline, bottom-positioned, large bold font).
+ *
+ * The subtitle text is the same string we send to TTS, but any inline
+ * audio-direction tags (e.g. `[whispers]`, `[laughs]`, `[pause]` —
+ * supported by Gemini TTS to steer delivery) are stripped before burn-in
+ * so they never appear on screen.
  */
 function buildAss(scene: Scene, width: number, height: number): string {
-  const text = escapeAssText(scene.subtitleText);
+  const captionSource = stripAudioTags(scene.subtitleText).trim();
+  // If nothing remains after stripping, render nothing rather than an
+  // empty dialogue event (which ffmpeg's subtitles filter dislikes).
+  if (!captionSource) {
+    return emptyAss(width, height);
+  }
+  const text = escapeAssText(captionSource);
   const end = secondsToAssTime(scene.durationSeconds);
   return `[Script Info]
 ScriptType: v4.00+
@@ -232,4 +243,32 @@ function escapeAssText(text: string): string {
     .replace(/\{/g, '\\{')
     .replace(/\}/g, '\\}')
     .replace(/\r?\n/g, '\\N');
+}
+
+/**
+ * Remove inline TTS direction tags like [whispers], [laughs], [pause].
+ * These are spoken-as-style cues some TTS providers (notably Gemini)
+ * accept inline in the input text — they MUST NOT appear in burned
+ * subtitles.
+ */
+function stripAudioTags(text: string): string {
+  // Conservative: only strip bracketed lowercase/whitespace cues, which
+  // cover the documented Gemini direction tags. Leaves bracketed proper
+  // nouns or normal punctuation alone.
+  return text.replace(/\[[a-z][a-z0-9 _'-]*\]/gi, '').replace(/\s{2,}/g, ' ');
+}
+
+function emptyAss(width: number, height: number): string {
+  return `[Script Info]
+ScriptType: v4.00+
+PlayResX: ${width}
+PlayResY: ${height}
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial Black,80,&H00FFFFFF,&H00000000,&H64000000,1,1,5,2,2,80,80,200,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+`;
 }
