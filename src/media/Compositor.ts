@@ -1,7 +1,8 @@
 import { join } from 'path';
 import { mkdir, writeFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
-import { Story, Scene } from '../story/types';
+import { Story } from '../story/types';
 import { SceneClipResult } from './VideoClipService';
 import { SceneNarrationResult } from './NarrationService';
 import { logger } from '../utils/logger';
@@ -26,14 +27,19 @@ export interface ComposeResult {
 
 /**
  * Compositor — produces the final TikTok-ready MP4 from per-scene clips,
- * narration audio, and burned-in ASS subtitles.
+ * narration audio, and burned-in captions.
+ *
+ * Captioning uses ffmpeg's built-in `drawtext` filter rather than `subtitles`
+ * (which requires libass — not present in every ffmpeg build, and the
+ * cause of "Filter not found" errors). drawtext styling: large bold font,
+ * white fill, thick black outline, bottom-positioned — same TikTok meme
+ * look the ASS version produced, with no external library dependency.
  *
  * Two passes:
  *   1. Per-scene: re-encode each clip to a fixed canvas (1080x1920, 30fps,
  *      H.264/AAC), mix narration audio onto it, and burn the scene's
- *      subtitle from a per-scene ASS file. Output is uniform across scenes
- *      so the concat demuxer is safe.
- *   2. Concat: stream-copy concat of the per-scene MP4s into the final file.
+ *      caption via drawtext.
+ *   2. Concat: stream-copy concat of the per-scene MP4s into final.mp4.
  */
 export class Compositor {
   public async compose(opts: ComposeOptions): Promise<ComposeResult> {
@@ -43,10 +49,19 @@ export class Compositor {
 
     await mkdir(opts.outputDir, { recursive: true });
 
+    const fontPath = findSubtitleFont();
+    if (!fontPath) {
+      logger.warn(
+        'No subtitle font found on disk — captions will be skipped. ' +
+          'Set SUBTITLE_FONT_PATH to a .ttf/.ttc/.otf file to enable them.'
+      );
+    }
+
     logger.info('Composing final video', {
       sceneCount: opts.story.scenes.length,
       outputPath: opts.outputPath,
       canvas: `${width}x${height}@${fps}`,
+      fontPath: fontPath ?? '(none)',
     });
 
     const sceneOutputs: string[] = [];
@@ -58,14 +73,20 @@ export class Compositor {
         throw new Error(`Missing clip or narration for scene ${i}`);
       }
 
-      const assPath = join(opts.outputDir, `scene-${i}.ass`);
-      await writeFile(assPath, buildAss(scene, width, height));
+      // drawtext reads the caption from a sidecar text file — sidesteps
+      // ffmpeg's filter-graph escaping which is brittle for arbitrary user
+      // text (apostrophes, colons, quotes).
+      const captionText = stripAudioTags(scene.subtitleText).trim();
+      const captionPath = join(opts.outputDir, `scene-${i}.txt`);
+      await writeFile(captionPath, captionText);
 
       const sceneOutput = join(opts.outputDir, `scene-${i}-composed.mp4`);
       await this.composeScene({
         clipPath: clip.path,
         narrationPath: narration.path,
-        assPath,
+        captionText,
+        captionPath,
+        fontPath,
         durationSeconds: scene.durationSeconds,
         outputPath: sceneOutput,
         width,
@@ -99,7 +120,9 @@ export class Compositor {
   private composeScene(opts: {
     clipPath: string;
     narrationPath: string;
-    assPath: string;
+    captionText: string;
+    captionPath: string;
+    fontPath: string | undefined;
     durationSeconds: number;
     outputPath: string;
     width: number;
@@ -107,58 +130,83 @@ export class Compositor {
     fps: number;
   }): Promise<void> {
     return new Promise((resolve, reject) => {
-      // Escape ass path for the subtitles filter (colons and backslashes).
-      const escapedAss = opts.assPath
-        .replace(/\\/g, '\\\\')
-        .replace(/:/g, '\\:')
-        .replace(/'/g, "\\'");
+      const videoChain: ffmpeg.FilterSpecification[] = [
+        {
+          filter: 'scale',
+          options: `${opts.width}:${opts.height}:force_original_aspect_ratio=increase`,
+          inputs: '0:v',
+          outputs: 'scaled',
+        },
+        {
+          filter: 'crop',
+          options: `${opts.width}:${opts.height}`,
+          inputs: 'scaled',
+          outputs: 'cropped',
+        },
+        {
+          filter: 'fps',
+          options: `${opts.fps}`,
+          inputs: 'cropped',
+          outputs: 'fpsed',
+        },
+      ];
+
+      const hasCaption = !!opts.captionText && !!opts.fontPath;
+      if (hasCaption) {
+        const fontfile = escapeFilterPath(opts.fontPath!);
+        const textfile = escapeFilterPath(opts.captionPath);
+        videoChain.push({
+          filter: 'drawtext',
+          options: [
+            `fontfile=${fontfile}`,
+            `textfile=${textfile}`,
+            `fontsize=${Math.round(opts.height / 24)}`, // ~80 at 1920
+            `fontcolor=white`,
+            `bordercolor=black`,
+            `borderw=6`,
+            `box=0`,
+            `line_spacing=10`,
+            `x=(w-text_w)/2`,
+            `y=h-text_h-200`,
+          ].join(':'),
+          inputs: 'fpsed',
+          outputs: 'v',
+        });
+      } else {
+        // Pass-through label so the rest of the graph still references [v].
+        videoChain.push({
+          filter: 'null',
+          inputs: 'fpsed',
+          outputs: 'v',
+        });
+      }
+
+      const audioChain: ffmpeg.FilterSpecification[] = [
+        {
+          filter: 'apad',
+          inputs: '1:a',
+          outputs: 'a',
+        },
+      ];
 
       ffmpeg(opts.clipPath)
         .input(opts.narrationPath)
-        .complexFilter([
-          {
-            filter: 'scale',
-            options: `${opts.width}:${opts.height}:force_original_aspect_ratio=increase`,
-            inputs: '0:v',
-            outputs: 'scaled',
-          },
-          {
-            filter: 'crop',
-            options: `${opts.width}:${opts.height}`,
-            inputs: 'scaled',
-            outputs: 'cropped',
-          },
-          {
-            filter: 'fps',
-            options: `${opts.fps}`,
-            inputs: 'cropped',
-            outputs: 'fpsed',
-          },
-          {
-            filter: 'subtitles',
-            options: `filename=${escapedAss}`,
-            inputs: 'fpsed',
-            outputs: 'v',
-          },
-          {
-            filter: 'apad',
-            inputs: '1:a',
-            outputs: 'a',
-          },
-        ])
+        .complexFilter([...videoChain, ...audioChain])
         .outputOptions([
-          '-map [v]',
-          '-map [a]',
-          '-c:v libx264',
-          '-preset fast',
-          '-pix_fmt yuv420p',
-          '-c:a aac',
-          '-b:a 192k',
+          '-map', '[v]',
+          '-map', '[a]',
+          '-c:v', 'libx264',
+          '-preset', 'fast',
+          '-pix_fmt', 'yuv420p',
+          '-c:a', 'aac',
+          '-b:a', '192k',
           '-t', `${opts.durationSeconds}`,
-          '-movflags +faststart',
+          '-movflags', '+faststart',
         ])
         .save(opts.outputPath)
-        .on('start', (cmd) => logger.debug('ffmpeg compose-scene start', { cmd }))
+        .on('start', (cmd) =>
+          logger.info('ffmpeg compose-scene start', { cmd })
+        )
         .on('end', () => {
           logger.info('Scene composed', { outputPath: opts.outputPath });
           resolve();
@@ -176,10 +224,10 @@ export class Compositor {
   private concat(listPath: string, outputPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
       ffmpeg(listPath)
-        .inputOptions(['-f concat', '-safe 0'])
-        .outputOptions(['-c copy', '-movflags +faststart'])
+        .inputOptions(['-f', 'concat', '-safe', '0'])
+        .outputOptions(['-c', 'copy', '-movflags', '+faststart'])
         .save(outputPath)
-        .on('start', (cmd) => logger.debug('ffmpeg concat start', { cmd }))
+        .on('start', (cmd) => logger.info('ffmpeg concat start', { cmd }))
         .on('end', () => {
           logger.info('Concat finished', { outputPath });
           resolve();
@@ -193,82 +241,46 @@ export class Compositor {
 }
 
 /**
- * Build a per-scene ASS subtitle file. One Dialogue event covering the
- * full scene duration, styled for TikTok meme look (white text, thick
- * black outline, bottom-positioned, large bold font).
- *
- * The subtitle text is the same string we send to TTS, but any inline
- * audio-direction tags (e.g. `[whispers]`, `[laughs]`, `[pause]` —
- * supported by Gemini TTS to steer delivery) are stripped before burn-in
- * so they never appear on screen.
- */
-function buildAss(scene: Scene, width: number, height: number): string {
-  const captionSource = stripAudioTags(scene.subtitleText).trim();
-  // If nothing remains after stripping, render nothing rather than an
-  // empty dialogue event (which ffmpeg's subtitles filter dislikes).
-  if (!captionSource) {
-    return emptyAss(width, height);
-  }
-  const text = escapeAssText(captionSource);
-  const end = secondsToAssTime(scene.durationSeconds);
-  return `[Script Info]
-ScriptType: v4.00+
-PlayResX: ${width}
-PlayResY: ${height}
-WrapStyle: 2
-ScaledBorderAndShadow: yes
-
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial Black,80,&H00FFFFFF,&H00000000,&H64000000,1,1,5,2,2,80,80,200,1
-
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-Dialogue: 0,0:00:00.00,${end},Default,,0,0,0,,${text}
-`;
-}
-
-function secondsToAssTime(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  const cs = Math.floor((s % 1) * 100);
-  return `${h}:${String(m).padStart(2, '0')}:${String(Math.floor(s)).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
-}
-
-function escapeAssText(text: string): string {
-  // ASS escaping: { } and \\ are special, newlines become \\N
-  return text
-    .replace(/\\/g, '\\\\')
-    .replace(/\{/g, '\\{')
-    .replace(/\}/g, '\\}')
-    .replace(/\r?\n/g, '\\N');
-}
-
-/**
  * Remove inline TTS direction tags like [whispers], [laughs], [pause].
  * These are spoken-as-style cues some TTS providers (notably Gemini)
  * accept inline in the input text — they MUST NOT appear in burned
  * subtitles.
  */
 function stripAudioTags(text: string): string {
-  // Conservative: only strip bracketed lowercase/whitespace cues, which
-  // cover the documented Gemini direction tags. Leaves bracketed proper
-  // nouns or normal punctuation alone.
   return text.replace(/\[[a-z][a-z0-9 _'-]*\]/gi, '').replace(/\s{2,}/g, ' ');
 }
 
-function emptyAss(width: number, height: number): string {
-  return `[Script Info]
-ScriptType: v4.00+
-PlayResX: ${width}
-PlayResY: ${height}
+/**
+ * Locate a usable subtitle font. Allows override via SUBTITLE_FONT_PATH;
+ * otherwise probes common system paths on macOS / Linux / Windows.
+ */
+function findSubtitleFont(): string | undefined {
+  const candidates: Array<string | undefined> = [
+    process.env.SUBTITLE_FONT_PATH,
+    // macOS
+    '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
+    '/System/Library/Fonts/Supplemental/Arial.ttf',
+    '/System/Library/Fonts/Helvetica.ttc',
+    '/Library/Fonts/Arial Bold.ttf',
+    // Linux
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+    // Windows
+    'C:\\Windows\\Fonts\\arialbd.ttf',
+    'C:\\Windows\\Fonts\\arial.ttf',
+  ];
+  for (const p of candidates) {
+    if (p && existsSync(p)) return p;
+  }
+  return undefined;
+}
 
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, OutlineColour, BackColour, Bold, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial Black,80,&H00FFFFFF,&H00000000,&H64000000,1,1,5,2,2,80,80,200,1
-
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-`;
+/**
+ * Escape a filesystem path so it can be safely used as a value in an ffmpeg
+ * filter-graph options string (where `:` separates key=value pairs and `\`
+ * is the escape character). Backslashes double, colons get a backslash.
+ */
+function escapeFilterPath(p: string): string {
+  return p.replace(/\\/g, '\\\\').replace(/:/g, '\\:');
 }
