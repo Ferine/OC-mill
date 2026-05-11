@@ -8,6 +8,7 @@ import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
 import { OpenRouterVideoClient } from '../clients/OpenRouterVideoClient';
 import { OpenRouterTTSClient } from '../clients/OpenRouterTTSClient';
 import { CharacterReferenceCache } from '../services/CharacterReferenceCache';
+import { MusicLibrary } from '../services/MusicLibrary';
 import { VideoValidator } from '../services/VideoValidator';
 import { ImageService, SceneKeyframeResult } from '../media/ImageService';
 import { VideoClipService, SceneClipResult } from '../media/VideoClipService';
@@ -76,6 +77,7 @@ export class OrangeCatAgent {
   private videoClipService: VideoClipService;
   private narrationService: NarrationService;
   private compositor: Compositor;
+  private musicLibrary: MusicLibrary;
   private videoValidator: VideoValidator;
   private captionGenerator: CaptionGenerator;
   private tiktokClient: TikTokClient;
@@ -126,6 +128,7 @@ export class OrangeCatAgent {
       config.tts.format
     );
     this.compositor = new Compositor();
+    this.musicLibrary = new MusicLibrary(config.music.rootDir);
     this.videoValidator = new VideoValidator(
       config.pipeline.videoDurationSeconds
     );
@@ -148,6 +151,19 @@ export class OrangeCatAgent {
 
   public async initialize(): Promise<void> {
     await this.statisticsTracker.initialize();
+    const inventory = await this.musicLibrary.inventory();
+    const totalTracks = Object.values(inventory).reduce((a, b) => a + b, 0);
+    logger.info('Music inventory', {
+      rootDir: this.config.music.rootDir,
+      totalTracks,
+      byMood: inventory,
+    });
+    if (totalTracks === 0) {
+      logger.info(
+        'No music tracks found — videos will play with narration only. ' +
+          'Drop .mp3 files into assets/music/<mood>/ to enable background music.'
+      );
+    }
     logger.info('OrangeCatAgent fully initialized');
   }
 
@@ -264,12 +280,19 @@ export class OrangeCatAgent {
         });
         videoPath = finalPath;
       } else {
+        const musicSelection = await this.musicLibrary.pickFor(
+          story.overallMood,
+          join(runDir, 'music.json')
+        );
         const composeResult = await this.compositor.compose({
           story,
           clips,
           narrations,
           outputDir: composeDir,
           outputPath: finalPath,
+          musicPath: musicSelection?.path,
+          musicVolume: this.config.music.volume,
+          musicFadeSeconds: this.config.music.fadeSeconds,
         });
         videoPath = composeResult.path;
       }

@@ -20,6 +20,15 @@ export interface TTSConfig {
   voicesByMood: Record<string, string>;
 }
 
+export interface MusicConfig {
+  /** Directory containing per-mood subdirectories (e.g. heartwarming/, funny/). */
+  rootDir: string;
+  /** Music gain (0.0–1.0). 0.2 ≈ -14 dB — sits under narration without competing. */
+  volume: number;
+  /** Fade in/out duration at start/end of the video, seconds. */
+  fadeSeconds: number;
+}
+
 export interface PipelineConfig {
   videoDurationSeconds: number;
   aspectRatio: '9:16';
@@ -46,6 +55,7 @@ export interface SchedulingConfig {
 export interface Config {
   openrouter: OpenRouterConfig;
   tts: TTSConfig;
+  music: MusicConfig;
   pipeline: PipelineConfig;
   tiktok: TikTokConfig;
   scheduling: SchedulingConfig;
@@ -96,6 +106,11 @@ export function loadConfig(): Config {
         hopeful: process.env.TTS_VOICE_HOPEFUL || 'Kore',
         epic: process.env.TTS_VOICE_EPIC || 'Fenrir',
       },
+    },
+    music: {
+      rootDir: process.env.MUSIC_DIR || './assets/music',
+      volume: parseFloat(process.env.MUSIC_VOLUME || '0.2'),
+      fadeSeconds: parseFloat(process.env.MUSIC_FADE_SECONDS || '2'),
     },
     pipeline: {
       videoDurationSeconds: parseInt(process.env.VIDEO_DURATION_SECONDS || '55', 10),
