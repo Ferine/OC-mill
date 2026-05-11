@@ -230,10 +230,21 @@ export class OpenRouterVideoClient {
 
   public async downloadVideo(videoUrl: string, targetPath: string): Promise<number> {
     logger.info('Downloading video clip', { videoUrl, targetPath });
-    const response = await fetch(videoUrl);
+
+    // OpenRouter serves completed clips from its own API host
+    // (https://openrouter.ai/api/v1/videos/:id/content), which requires the
+    // same Bearer auth as polling. Third-party CDN URLs do not — attaching
+    // the header there is harmless and the request just succeeds.
+    const headers: Record<string, string> = {};
+    if (this.urlNeedsAuth(videoUrl)) {
+      headers.Authorization = `Bearer ${this.cfg.apiKey}`;
+    }
+
+    const response = await fetch(videoUrl, { headers });
     if (!response.ok) {
+      const body = await response.text().catch(() => '');
       throw new Error(
-        `Video download failed: ${response.status} ${response.statusText}`
+        `Video download failed: ${response.status} ${response.statusText} ${body.slice(0, 300)}`
       );
     }
     const buffer = Buffer.from(await response.arrayBuffer());
@@ -242,6 +253,16 @@ export class OpenRouterVideoClient {
     await atomicWrite(targetPath, buffer);
     logger.info('Video clip downloaded', { targetPath, bytes: buffer.length });
     return buffer.length;
+  }
+
+  private urlNeedsAuth(url: string): boolean {
+    try {
+      const u = new URL(url);
+      const base = new URL(this.cfg.baseUrl);
+      return u.host === base.host || u.host.endsWith('.openrouter.ai');
+    } catch {
+      return false;
+    }
   }
 
   private headers(): Record<string, string> {
