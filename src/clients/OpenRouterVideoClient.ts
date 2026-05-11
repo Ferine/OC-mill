@@ -270,28 +270,71 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * OpenRouter responses vary slightly between providers — completed jobs may
- * surface video URLs as `video_url`, `videos[0].url`, or `output[0].url`.
- * Try each shape.
+ * OpenRouter responses vary across providers — completed jobs may surface
+ * video URLs under any of: `unsigned_urls[]`, `urls[]`, `assets[].url`,
+ * `videos[].url`, `output[].url`, or a top-level `video_url`. Walk each.
+ *
+ * If the job reports completed but no URL turns up, log the full payload at
+ * warn level so we can extend this list when a new shape shows up.
  */
 function normalizeJob(id: string, data: Record<string, unknown>): VideoJob {
   const status = (data.status as string) || 'queued';
   const errorMessage =
     (data.error_message as string) ||
-    (data.error as string) ||
+    (typeof data.error === 'string' ? data.error : undefined) ||
     ((data.error as { message?: string } | undefined)?.message as string | undefined);
   const progress = typeof data.progress === 'number' ? data.progress : undefined;
 
-  let videoUrl: string | undefined;
-  if (typeof data.video_url === 'string') {
-    videoUrl = data.video_url;
-  } else if (Array.isArray(data.videos) && data.videos.length > 0) {
-    const first = data.videos[0] as { url?: string; video_url?: string };
-    videoUrl = first.url ?? first.video_url;
-  } else if (Array.isArray(data.output) && data.output.length > 0) {
-    const first = data.output[0] as { url?: string; video_url?: string };
-    videoUrl = first.url ?? first.video_url;
+  const videoUrl = extractVideoUrl(data);
+
+  if (status === 'completed' && !videoUrl) {
+    logger.warn(
+      'Video job completed but no recognizable video URL field — please file a bug. Raw response:',
+      { jobId: id, response: JSON.stringify(data).slice(0, 2000) }
+    );
   }
 
   return { id, status, videoUrl, errorMessage, progress };
+}
+
+function extractVideoUrl(data: Record<string, unknown>): string | undefined {
+  // Top-level scalars
+  if (typeof data.video_url === 'string') return data.video_url;
+  if (typeof data.url === 'string') return data.url;
+
+  // OpenRouter completed-job shape: unsigned_urls is the documented array
+  // of downloadable asset URLs.
+  const stringArrays: Array<unknown> = [
+    data.unsigned_urls,
+    data.urls,
+    data.signed_urls,
+  ];
+  for (const arr of stringArrays) {
+    if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'string') {
+      return arr[0] as string;
+    }
+  }
+
+  // Object-array shapes: pick the first entry's first URL-ish field.
+  const objectArrays: Array<unknown> = [
+    data.videos,
+    data.output,
+    data.outputs,
+    data.assets,
+    data.files,
+    data.results,
+  ];
+  for (const arr of objectArrays) {
+    if (!Array.isArray(arr) || arr.length === 0) continue;
+    const first = arr[0] as Record<string, unknown>;
+    const candidate =
+      (typeof first.url === 'string' && first.url) ||
+      (typeof first.video_url === 'string' && first.video_url) ||
+      (typeof first.signed_url === 'string' && first.signed_url) ||
+      (typeof first.unsigned_url === 'string' && first.unsigned_url) ||
+      undefined;
+    if (candidate) return candidate;
+  }
+
+  return undefined;
 }
