@@ -181,7 +181,17 @@ export class OrangeCatAgent {
       // Step 1: Story — load from disk if resuming, else generate + persist.
       logger.info('📖 Step 1/7: Story');
       events?.publish({ type: 'story.start' });
-      if (resuming && (await isCachedFile(storyPath, 100))) {
+      if (resuming) {
+        // Resume MUST find an existing story. Generating a fresh one would
+        // mismatch any per-scene outputs already on disk and overwrite them
+        // with content for a different story — silently destructive.
+        if (!(await isCachedFile(storyPath, 100))) {
+          throw new Error(
+            `Cannot resume ${runDir}: story.json is missing. ` +
+              `This run was likely created by an older build. ` +
+              `Start a fresh run instead (npm start), or delete the runDir to discard it.`
+          );
+        }
         story = await readJson<Story>(storyPath);
         logger.info('Story loaded from cache', {
           archetype: story.archetype,
