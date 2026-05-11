@@ -1,6 +1,6 @@
 import { join } from 'path';
 import { mkdir, stat } from 'fs/promises';
-import { ElevenLabsClient } from '../clients/ElevenLabsClient';
+import { OpenRouterTTSClient } from '../clients/OpenRouterTTSClient';
 import { runWithConcurrency } from '../pipeline/concurrency';
 import { PipelineEventBus } from '../pipeline/events';
 import { Story, Mood } from '../story/types';
@@ -16,7 +16,7 @@ export interface SceneNarrationResult {
 
 export class NarrationService {
   constructor(
-    private client: ElevenLabsClient,
+    private client: OpenRouterTTSClient,
     private voicesByMood: Record<string, string>
   ) {}
 
@@ -64,15 +64,16 @@ export class NarrationService {
 
       opts.events?.publish({ type: 'scene.narration.start', sceneIndex });
 
-      const voiceId = this.pickVoice(scene.mood, opts.story.overallMood);
+      const voice = this.pickVoice(scene.mood, opts.story.overallMood);
       const buffer = await this.client.synthesize({
-        voiceId,
+        voice,
         text: scene.subtitleText,
+        format: 'mp3',
       });
       await atomicWrite(path, buffer);
       logger.info('Narration generated', {
         sceneIndex,
-        voiceId,
+        voice,
         path,
         bytes: buffer.length,
       });

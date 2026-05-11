@@ -176,14 +176,14 @@ export class APIRateLimiters {
   public readonly openrouterLLM: RateLimiter;
   public readonly openrouterImage: RateLimiter;
   public readonly openrouterVideo: RateLimiter;
-  public readonly elevenlabs: RateLimiter;
+  public readonly tts: RateLimiter;
   public readonly tiktok: RateLimiter;
 
   constructor() {
     this.openrouterLLM = new RateLimiter(10, 0.5);
     this.openrouterImage = new RateLimiter(8, 0.3);
     this.openrouterVideo = new RateLimiter(5, 0.1);
-    this.elevenlabs = new RateLimiter(10, 0.5);
+    this.tts = new RateLimiter(10, 0.5);
     this.tiktok = new RateLimiter(10, 0.2);
 
     logger.info('API Rate limiters initialized');
@@ -193,7 +193,7 @@ export class APIRateLimiters {
     this.openrouterLLM.stop();
     this.openrouterImage.stop();
     this.openrouterVideo.stop();
-    this.elevenlabs.stop();
+    this.tts.stop();
     this.tiktok.stop();
   }
 
@@ -201,7 +201,7 @@ export class APIRateLimiters {
     this.openrouterLLM.resetAll();
     this.openrouterImage.resetAll();
     this.openrouterVideo.resetAll();
-    this.elevenlabs.resetAll();
+    this.tts.resetAll();
     this.tiktok.resetAll();
   }
 }
