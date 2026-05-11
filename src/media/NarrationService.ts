@@ -2,6 +2,7 @@ import { join } from 'path';
 import { mkdir, stat } from 'fs/promises';
 import { ElevenLabsClient } from '../clients/ElevenLabsClient';
 import { runWithConcurrency } from '../pipeline/concurrency';
+import { PipelineEventBus } from '../pipeline/events';
 import { Story, Mood } from '../story/types';
 import { atomicWrite, isCachedFile } from '../utils/io';
 import { logger } from '../utils/logger';
@@ -28,6 +29,7 @@ export class NarrationService {
     story: Story;
     outputDir: string;
     concurrency: number;
+    events?: PipelineEventBus;
   }): Promise<SceneNarrationResult[]> {
     logger.info('Generating narration for all scenes', {
       sceneCount: opts.story.scenes.length,
@@ -50,8 +52,17 @@ export class NarrationService {
           path,
           bytes: s.size,
         });
+        opts.events?.publish({
+          type: 'scene.narration.ready',
+          sceneIndex,
+          path,
+          bytes: s.size,
+          fromCache: true,
+        });
         return { sceneIndex, path, bytes: s.size, fromCache: true };
       }
+
+      opts.events?.publish({ type: 'scene.narration.start', sceneIndex });
 
       const voiceId = this.pickVoice(scene.mood, opts.story.overallMood);
       const buffer = await this.client.synthesize({
@@ -62,6 +73,12 @@ export class NarrationService {
       logger.info('Narration generated', {
         sceneIndex,
         voiceId,
+        path,
+        bytes: buffer.length,
+      });
+      opts.events?.publish({
+        type: 'scene.narration.ready',
+        sceneIndex,
         path,
         bytes: buffer.length,
       });
