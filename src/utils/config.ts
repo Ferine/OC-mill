@@ -16,6 +16,7 @@ export interface OpenRouterConfig {
 }
 
 export interface TTSConfig {
+  format: 'pcm' | 'mp3' | 'wav' | 'opus' | 'aac' | 'flac';
   voicesByMood: Record<string, string>;
 }
 
@@ -78,6 +79,12 @@ export function loadConfig(): Config {
       appUrl: process.env.OPENROUTER_APP_URL || 'https://github.com/ferine/oc-mill',
     },
     tts: {
+      // Gemini 3.1 Flash TTS only supports response_format=pcm. Other models
+      // accept mp3 (the OpenAI Audio Speech default). Set OPENROUTER_TTS_FORMAT
+      // when swapping models — the narration service wraps PCM in a WAV
+      // header on save so it's playable everywhere.
+      format:
+        (process.env.OPENROUTER_TTS_FORMAT as TTSConfig['format']) || 'pcm',
       // Gemini 3.1 Flash TTS prebuilt voice names. Override any of these to
       // retune the brand voices. Other TTS models on OpenRouter will accept
       // their own voice IDs here (just swap OPENROUTER_TTS_MODEL too).

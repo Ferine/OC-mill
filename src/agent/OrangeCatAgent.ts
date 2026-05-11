@@ -122,7 +122,8 @@ export class OrangeCatAgent {
     );
     this.narrationService = new NarrationService(
       this.ttsClient,
-      config.tts.voicesByMood
+      config.tts.voicesByMood,
+      config.tts.format
     );
     this.compositor = new Compositor();
     this.videoValidator = new VideoValidator(
