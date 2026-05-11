@@ -1,6 +1,5 @@
-import { mkdir, writeFile } from 'fs/promises';
-import { dirname } from 'path';
 import { OpenRouterConfig } from '../utils/config';
+import { atomicWrite } from '../utils/io';
 import { logger } from '../utils/logger';
 
 export interface VideoJobOptions {
@@ -231,7 +230,6 @@ export class OpenRouterVideoClient {
 
   public async downloadVideo(videoUrl: string, targetPath: string): Promise<number> {
     logger.info('Downloading video clip', { videoUrl, targetPath });
-    await mkdir(dirname(targetPath), { recursive: true });
     const response = await fetch(videoUrl);
     if (!response.ok) {
       throw new Error(
@@ -239,7 +237,9 @@ export class OpenRouterVideoClient {
       );
     }
     const buffer = Buffer.from(await response.arrayBuffer());
-    await writeFile(targetPath, buffer);
+    // Atomic write so a partial/interrupted download never leaves a corrupt
+    // file behind that the resume path would mistake for completed output.
+    await atomicWrite(targetPath, buffer);
     logger.info('Video clip downloaded', { targetPath, bytes: buffer.length });
     return buffer.length;
   }
