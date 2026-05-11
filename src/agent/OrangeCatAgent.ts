@@ -1,4 +1,5 @@
 import { join } from 'path';
+import { mkdir, readdir, stat } from 'fs/promises';
 import { StoryService } from '../llm/StoryService';
 import { EvalService } from '../llm/EvalService';
 import { CaptionGenerator } from '../caption/CaptionGenerator';
@@ -18,12 +19,19 @@ import { Compositor } from '../media/Compositor';
 import { StatisticsTracker } from '../services/StatisticsTracker';
 import { APIRateLimiters } from '../utils/RateLimiter';
 import { Config } from '../utils/config';
+import { atomicWrite, isCachedFile, readJson } from '../utils/io';
 import { logger } from '../utils/logger';
 import { Story } from '../story/types';
+
+export interface RunOnceOptions {
+  /** Resume a previously-started run from this directory. */
+  resumeFromRunDir?: string;
+}
 
 export interface AgentRunResult {
   success: boolean;
   story: Story;
+  runDir: string;
   keyframes?: SceneKeyframeResult[];
   clips?: SceneClipResult[];
   narrations?: SceneNarrationResult[];
@@ -136,10 +144,22 @@ export class OrangeCatAgent {
     logger.info('OrangeCatAgent fully initialized');
   }
 
-  public async runOnce(): Promise<AgentRunResult> {
+  public async runOnce(opts: RunOnceOptions = {}): Promise<AgentRunResult> {
     const startTime = Date.now();
-    const runId = new Date().toISOString().replace(/[:.]/g, '-');
-    const runDir = join(this.config.pipeline.videoDownloadPath, `run-${runId}`);
+
+    // Resume: derive runDir from caller; otherwise mint a fresh one.
+    let runDir: string;
+    let resuming = false;
+    if (opts.resumeFromRunDir) {
+      runDir = opts.resumeFromRunDir;
+      resuming = true;
+    } else {
+      const runId = new Date().toISOString().replace(/[:.]/g, '-');
+      runDir = join(this.config.pipeline.videoDownloadPath, `run-${runId}`);
+    }
+    await mkdir(runDir, { recursive: true });
+    const storyPath = join(runDir, 'story.json');
+
     let story: Story | undefined;
     let keyframes: SceneKeyframeResult[] | undefined;
     let clips: SceneClipResult[] | undefined;
@@ -148,12 +168,26 @@ export class OrangeCatAgent {
     let videoSizeBytes: number | undefined;
 
     try {
-      logger.info('🚀 Starting OrangeCatAgent run', { runId, runDir });
+      logger.info(resuming ? '↻ Resuming OrangeCatAgent run' : '🚀 Starting OrangeCatAgent run', {
+        runDir,
+        resuming,
+      });
 
-      // Step 1: Generate story
-      logger.info('📖 Step 1/7: Generating story');
-      await this.rateLimiters.openrouterLLM.consume('story-generation');
-      story = await this.storyService.generateStory();
+      // Step 1: Story — load from disk if resuming, else generate + persist.
+      logger.info('📖 Step 1/7: Story');
+      if (resuming && (await isCachedFile(storyPath, 100))) {
+        story = await readJson<Story>(storyPath);
+        logger.info('Story loaded from cache', {
+          archetype: story.archetype,
+          title: story.title,
+          scenes: story.scenes.length,
+        });
+      } else {
+        await this.rateLimiters.openrouterLLM.consume('story-generation');
+        story = await this.storyService.generateStory();
+        await atomicWrite(storyPath, JSON.stringify(story, null, 2));
+        logger.info('Story persisted', { storyPath });
+      }
 
       // Step 2: Per-scene keyframes
       // Note: no pre-consume loop — `sceneConcurrency` provides backpressure
@@ -186,18 +220,27 @@ export class OrangeCatAgent {
         concurrency: this.config.pipeline.sceneConcurrency,
       });
 
-      // Step 5: Compose final video (ffmpeg)
+      // Step 5: Compose final video (ffmpeg) — skip if already on disk.
       logger.info('🎞️  Step 5/7: Composing final video');
       const composeDir = join(runDir, 'compose');
       const finalPath = join(runDir, 'final.mp4');
-      const composeResult = await this.compositor.compose({
-        story,
-        clips,
-        narrations,
-        outputDir: composeDir,
-        outputPath: finalPath,
-      });
-      videoPath = composeResult.path;
+      if (await isCachedFile(finalPath, 100_000)) {
+        const s = await stat(finalPath);
+        logger.info('Final composed video already present — skipping compose', {
+          finalPath,
+          bytes: s.size,
+        });
+        videoPath = finalPath;
+      } else {
+        const composeResult = await this.compositor.compose({
+          story,
+          clips,
+          narrations,
+          outputDir: composeDir,
+          outputPath: finalPath,
+        });
+        videoPath = composeResult.path;
+      }
 
       // Step 6: Validate composed output
       logger.info('✔️  Step 6/7: Validating composed video');
@@ -241,6 +284,7 @@ export class OrangeCatAgent {
       return {
         success: true,
         story,
+        runDir,
         keyframes,
         clips,
         narrations,
@@ -271,6 +315,10 @@ export class OrangeCatAgent {
         });
       }
 
+      logger.error(
+        `Run failed. Resume with: npm start -- --resume ${runDir}`
+      );
+
       return {
         success: false,
         story:
@@ -284,6 +332,7 @@ export class OrangeCatAgent {
             overallMood: 'heartwarming',
             musicStyle: '',
           } as Story),
+        runDir,
         keyframes,
         clips,
         narrations,
@@ -293,6 +342,34 @@ export class OrangeCatAgent {
         duration,
       };
     }
+  }
+
+  /**
+   * Find the most recently started run directory under videoDownloadPath,
+   * if any. Used by `--resume latest`.
+   */
+  public async findLatestRunDir(): Promise<string | undefined> {
+    const root = this.config.pipeline.videoDownloadPath;
+    let entries: string[];
+    try {
+      entries = await readdir(root);
+    } catch {
+      return undefined;
+    }
+    const runDirs: Array<{ path: string; mtime: number }> = [];
+    for (const name of entries) {
+      if (!name.startsWith('run-')) continue;
+      const path = join(root, name);
+      try {
+        const s = await stat(path);
+        if (s.isDirectory()) runDirs.push({ path, mtime: s.mtimeMs });
+      } catch {
+        // skip
+      }
+    }
+    if (runDirs.length === 0) return undefined;
+    runDirs.sort((a, b) => b.mtime - a.mtime);
+    return runDirs[0].path;
   }
 
   public async runMultiple(count: number): Promise<AgentRunResult[]> {

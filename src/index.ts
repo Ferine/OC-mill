@@ -34,6 +34,7 @@ async function checkFfmpeg(): Promise<void> {
  *
  * Usage:
  *   npm start                                       Run once
+ *   npm start -- --resume <runDir|latest>           Resume a partial run
  *   npm start -- --dry                              LLM-only dry run
  *   npm start -- --stats                            Show statistics
  *   npm start -- --count N                          Run N times sequentially
@@ -43,6 +44,7 @@ async function checkFfmpeg(): Promise<void> {
 
 type Args =
   | { mode: 'once'; count?: number }
+  | { mode: 'resume'; target: string }
   | { mode: 'dry' }
   | { mode: 'loop' }
   | { mode: 'stats' }
@@ -54,6 +56,15 @@ function parseArgs(): Args {
   if (args.includes('--stats') || args.includes('-s')) return { mode: 'stats' };
   if (args.includes('--dry') || args.includes('-d')) return { mode: 'dry' };
   if (args.includes('--loop') || args.includes('-l')) return { mode: 'loop' };
+
+  const resumeIdx = args.findIndex((a) => a === '--resume');
+  if (resumeIdx !== -1) {
+    const target = args[resumeIdx + 1];
+    if (!target) {
+      throw new Error('--resume requires <runDir> or "latest"');
+    }
+    return { mode: 'resume', target };
+  }
 
   const sceneIdx = args.findIndex((a) => a === '--scene');
   if (sceneIdx !== -1 && args[sceneIdx + 1]) {
@@ -78,6 +89,34 @@ function parseArgs(): Args {
   }
 
   return { mode: 'once' };
+}
+
+async function runResume(agent: OrangeCatAgent, target: string): Promise<void> {
+  let runDir = target;
+  if (target === 'latest') {
+    const latest = await agent.findLatestRunDir();
+    if (!latest) {
+      console.log('\n❌ No previous run found to resume.');
+      process.exit(1);
+    }
+    runDir = latest;
+    logger.info('Resuming latest run', { runDir });
+  }
+  console.log(`\n↻ Resuming run: ${runDir}\n`);
+
+  const result = await agent.runOnce({ resumeFromRunDir: runDir });
+
+  if (result.success) {
+    console.log('\n✅ SUCCESS!');
+    console.log(`Story: ${result.story.title}`);
+    console.log(`TikTok Post ID: ${result.tiktokPostId}`);
+    if (result.tiktokShareUrl) console.log(`Share URL: ${result.tiktokShareUrl}`);
+  } else {
+    console.log('\n❌ FAILED!');
+    console.log(`Error: ${result.error}`);
+    console.log(`Resume again with: npm start -- --resume ${result.runDir}`);
+    process.exit(1);
+  }
 }
 
 async function runScene(
@@ -123,6 +162,7 @@ async function runOnce(agent: OrangeCatAgent): Promise<void> {
     logger.error('Run failed', { error: result.error });
     console.log('\n❌ FAILED!');
     console.log(`Error: ${result.error}`);
+    console.log(`Resume with: npm start -- --resume ${result.runDir}`);
     process.exit(1);
   }
 }
@@ -243,6 +283,28 @@ async function main(): Promise<void> {
     const parsed = parseArgs();
     logger.info('Running in mode', { mode: parsed.mode });
 
+    // SIGINT during a foreground run: log loudly, the next run can resume
+    // from whatever has already been persisted to disk in the run directory.
+    const installSigintHandler = () => {
+      let interrupted = false;
+      process.on('SIGINT', () => {
+        if (interrupted) {
+          console.error('\nForce exit.');
+          process.exit(130);
+        }
+        interrupted = true;
+        console.error(
+          '\n⚠️  Interrupted. Outputs persisted to disk are safe to resume:'
+        );
+        console.error(
+          '   npm start -- --resume latest   (resumes most recent run)'
+        );
+        // Let in-flight network I/O drain briefly, then exit.
+        setTimeout(() => process.exit(130), 500);
+      });
+    };
+    installSigintHandler();
+
     switch (parsed.mode) {
       case 'stats':
         await showStats(agent);
@@ -254,6 +316,10 @@ async function main(): Promise<void> {
 
       case 'loop':
         await runLoop(agent);
+        break;
+
+      case 'resume':
+        await runResume(agent, parsed.target);
         break;
 
       case 'scene':

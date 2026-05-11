@@ -1,6 +1,5 @@
-import { mkdir, writeFile } from 'fs/promises';
-import { dirname } from 'path';
 import { OpenRouterConfig } from '../utils/config';
+import { atomicWrite } from '../utils/io';
 import { logger } from '../utils/logger';
 
 export interface VideoJobOptions {
@@ -73,20 +72,23 @@ export class OpenRouterVideoClient {
     const frameImages: Array<Record<string, unknown>> = [];
     if (opts.firstFrame) {
       frameImages.push({
-        frame_type: 'first_frame',
+        type: 'image_url',
         image_url: { url: bufferToDataUrl(opts.firstFrame) },
+        frame_type: 'first_frame',
       });
     }
     if (opts.lastFrame) {
       frameImages.push({
-        frame_type: 'last_frame',
+        type: 'image_url',
         image_url: { url: bufferToDataUrl(opts.lastFrame) },
+        frame_type: 'last_frame',
       });
     }
     if (frameImages.length > 0) body.frame_images = frameImages;
 
     if (opts.referenceImages && opts.referenceImages.length > 0) {
       body.input_references = opts.referenceImages.map((buf) => ({
+        type: 'image_url',
         image_url: { url: bufferToDataUrl(buf) },
       }));
     }
@@ -228,7 +230,6 @@ export class OpenRouterVideoClient {
 
   public async downloadVideo(videoUrl: string, targetPath: string): Promise<number> {
     logger.info('Downloading video clip', { videoUrl, targetPath });
-    await mkdir(dirname(targetPath), { recursive: true });
     const response = await fetch(videoUrl);
     if (!response.ok) {
       throw new Error(
@@ -236,7 +237,9 @@ export class OpenRouterVideoClient {
       );
     }
     const buffer = Buffer.from(await response.arrayBuffer());
-    await writeFile(targetPath, buffer);
+    // Atomic write so a partial/interrupted download never leaves a corrupt
+    // file behind that the resume path would mistake for completed output.
+    await atomicWrite(targetPath, buffer);
     logger.info('Video clip downloaded', { targetPath, bytes: buffer.length });
     return buffer.length;
   }

@@ -1,15 +1,25 @@
 import { join } from 'path';
-import { mkdir, readFile, writeFile } from 'fs/promises';
+import { mkdir, readFile } from 'fs/promises';
 import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
 import { CharacterReferenceCache } from '../services/CharacterReferenceCache';
 import { EvalService } from '../llm/EvalService';
 import { runWithConcurrency } from '../pipeline/concurrency';
 import { Story, Scene } from '../story/types';
+import { atomicWrite, isCachedFile, readJson } from '../utils/io';
 import { logger } from '../utils/logger';
 
 export interface SceneKeyframeResult {
   sceneIndex: number;
   path: string;
+  bytes: number;
+  evalAttempts: number;
+  evalPassed: boolean;
+  /** True when the result came from a cached file (resume path). */
+  fromCache?: boolean;
+}
+
+interface CachedKeyframeMeta {
+  sceneIndex: number;
   bytes: number;
   evalAttempts: number;
   evalPassed: boolean;
@@ -48,13 +58,45 @@ export class ImageService {
     sceneIndex: number;
     outputDir: string;
   }): Promise<SceneKeyframeResult> {
-    const characterRef = await this.characterCache.getReference(
-      opts.story.archetype
-    );
     await mkdir(opts.outputDir, { recursive: true });
     const path = join(
       opts.outputDir,
       `scene-${String(opts.sceneIndex).padStart(2, '0')}-keyframe.png`
+    );
+    const metaPath = `${path}.meta.json`;
+
+    // Resume path: if the keyframe (and its eval metadata) already exists
+    // and previously passed, return it without re-spending image/VLM tokens.
+    if (await isCachedFile(path, 1024)) {
+      try {
+        const meta = await readJson<CachedKeyframeMeta>(metaPath);
+        if (meta.evalPassed) {
+          logger.info('Keyframe cache hit (resume)', {
+            sceneIndex: opts.sceneIndex,
+            path,
+            evalAttempts: meta.evalAttempts,
+          });
+          return {
+            sceneIndex: opts.sceneIndex,
+            path,
+            bytes: meta.bytes,
+            evalAttempts: meta.evalAttempts,
+            evalPassed: true,
+            fromCache: true,
+          };
+        }
+        logger.info('Keyframe cached but did not pass eval — regenerating', {
+          sceneIndex: opts.sceneIndex,
+        });
+      } catch {
+        logger.info('Keyframe present but metadata missing — regenerating', {
+          sceneIndex: opts.sceneIndex,
+        });
+      }
+    }
+
+    const characterRef = await this.characterCache.getReference(
+      opts.story.archetype
     );
 
     let attempt = 0;
@@ -71,7 +113,7 @@ export class ImageService {
         referenceImages: [characterRef],
         aspectRatio: '9:16',
       });
-      await writeFile(path, buffer);
+      await atomicWrite(path, buffer);
 
       logger.info('Keyframe generated', {
         sceneIndex: opts.sceneIndex,
@@ -80,7 +122,18 @@ export class ImageService {
         bytes: buffer.length,
       });
 
+      const writeMeta = async (evalPassed: boolean) => {
+        const meta: CachedKeyframeMeta = {
+          sceneIndex: opts.sceneIndex,
+          bytes: buffer.length,
+          evalAttempts: attempt,
+          evalPassed,
+        };
+        await atomicWrite(metaPath, JSON.stringify(meta, null, 2));
+      };
+
       if (!this.evalService) {
+        await writeMeta(true);
         return {
           sceneIndex: opts.sceneIndex,
           path,
@@ -96,6 +149,7 @@ export class ImageService {
       });
 
       if (evalResult.pass) {
+        await writeMeta(true);
         return {
           sceneIndex: opts.sceneIndex,
           path,
@@ -117,6 +171,13 @@ export class ImageService {
     // Budget exhausted: keep the last keyframe so the run can still proceed,
     // but flag it as a failed eval in the result for stats.
     const lastBuffer = await readFile(path);
+    const meta: CachedKeyframeMeta = {
+      sceneIndex: opts.sceneIndex,
+      bytes: lastBuffer.length,
+      evalAttempts: attempt,
+      evalPassed: false,
+    };
+    await atomicWrite(metaPath, JSON.stringify(meta, null, 2));
     logger.error('Keyframe eval budget exhausted — proceeding with last attempt', {
       sceneIndex: opts.sceneIndex,
     });

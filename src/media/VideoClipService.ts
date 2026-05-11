@@ -1,9 +1,10 @@
 import { join } from 'path';
-import { readFile } from 'fs/promises';
+import { readFile, stat } from 'fs/promises';
 import { OpenRouterVideoClient } from '../clients/OpenRouterVideoClient';
 import { runWithConcurrency } from '../pipeline/concurrency';
 import { Story, Scene } from '../story/types';
 import { SceneKeyframeResult } from './ImageService';
+import { isCachedFile } from '../utils/io';
 import { logger } from '../utils/logger';
 
 export interface SceneClipResult {
@@ -11,6 +12,7 @@ export interface SceneClipResult {
   path: string;
   bytes: number;
   durationSeconds: number;
+  fromCache?: boolean;
 }
 
 export class VideoClipService {
@@ -30,6 +32,29 @@ export class VideoClipService {
     keyframePath: string;
     outputDir: string;
   }): Promise<SceneClipResult> {
+    const path = join(
+      opts.outputDir,
+      `scene-${String(opts.sceneIndex).padStart(2, '0')}-clip.mp4`
+    );
+
+    // Resume path: if we already have a non-trivial clip on disk, reuse it.
+    // 100KB floor catches obviously-truncated downloads from a crashed run.
+    if (await isCachedFile(path, 100_000)) {
+      const s = await stat(path);
+      logger.info('Clip cache hit (resume)', {
+        sceneIndex: opts.sceneIndex,
+        path,
+        bytes: s.size,
+      });
+      return {
+        sceneIndex: opts.sceneIndex,
+        path,
+        bytes: s.size,
+        durationSeconds: opts.scene.durationSeconds,
+        fromCache: true,
+      };
+    }
+
     const firstFrame = await readFile(opts.keyframePath);
     const prompt = buildClipPrompt(opts.scene);
 
@@ -43,10 +68,6 @@ export class VideoClipService {
     });
     const job = await this.client.pollUntilComplete(jobId);
 
-    const path = join(
-      opts.outputDir,
-      `scene-${String(opts.sceneIndex).padStart(2, '0')}-clip.mp4`
-    );
     const bytes = await this.client.downloadVideo(job.videoUrl!, path);
 
     logger.info('Scene clip ready', {
