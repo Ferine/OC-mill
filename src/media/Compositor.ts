@@ -117,7 +117,7 @@ export class Compositor {
     return { path: opts.outputPath, durationSeconds: totalDuration };
   }
 
-  private composeScene(opts: {
+  private async composeScene(opts: {
     clipPath: string;
     narrationPath: string;
     captionText: string;
@@ -129,31 +129,61 @@ export class Compositor {
     height: number;
     fps: number;
   }): Promise<void> {
+    const hasCaption = !!opts.captionText && !!opts.fontPath;
+    try {
+      await this.runComposeScene({ ...opts, withCaption: hasCaption });
+    } catch (err) {
+      if (!hasCaption) throw err;
+      logger.warn(
+        'Scene composition with captions failed — retrying without captions',
+        {
+          outputPath: opts.outputPath,
+          error: err instanceof Error ? err.message : String(err),
+        }
+      );
+      await this.runComposeScene({ ...opts, withCaption: false });
+    }
+  }
+
+  private runComposeScene(opts: {
+    clipPath: string;
+    narrationPath: string;
+    captionPath: string;
+    fontPath: string | undefined;
+    durationSeconds: number;
+    outputPath: string;
+    width: number;
+    height: number;
+    fps: number;
+    withCaption: boolean;
+  }): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Use fully-named scale options. ffmpeg 8 is stricter than older
+      // versions about mixing positional with named ('w:h:force_...=increase'
+      // is rejected).
       const videoChain: ffmpeg.FilterSpecification[] = [
         {
           filter: 'scale',
-          options: `${opts.width}:${opts.height}:force_original_aspect_ratio=increase`,
+          options: `w=${opts.width}:h=${opts.height}:force_original_aspect_ratio=increase`,
           inputs: '0:v',
           outputs: 'scaled',
         },
         {
           filter: 'crop',
-          options: `${opts.width}:${opts.height}`,
+          options: `w=${opts.width}:h=${opts.height}`,
           inputs: 'scaled',
           outputs: 'cropped',
         },
         {
           filter: 'fps',
-          options: `${opts.fps}`,
+          options: `fps=${opts.fps}`,
           inputs: 'cropped',
           outputs: 'fpsed',
         },
       ];
 
-      const hasCaption = !!opts.captionText && !!opts.fontPath;
-      if (hasCaption) {
-        const fontfile = escapeFilterPath(opts.fontPath!);
+      if (opts.withCaption && opts.fontPath) {
+        const fontfile = escapeFilterPath(opts.fontPath);
         const textfile = escapeFilterPath(opts.captionPath);
         videoChain.push({
           filter: 'drawtext',
@@ -189,6 +219,8 @@ export class Compositor {
         },
       ];
 
+      const stderrLines: string[] = [];
+
       ffmpeg(opts.clipPath)
         .input(opts.narrationPath)
         .complexFilter([...videoChain, ...audioChain])
@@ -205,18 +237,31 @@ export class Compositor {
         ])
         .save(opts.outputPath)
         .on('start', (cmd) =>
-          logger.info('ffmpeg compose-scene start', { cmd })
+          logger.info('ffmpeg compose-scene start', {
+            cmd,
+            withCaption: opts.withCaption,
+          })
         )
+        .on('stderr', (line) => {
+          // Capture stderr for error diagnostics — keep only the last few
+          // hundred lines so a long encode doesn't blow up memory.
+          stderrLines.push(line);
+          if (stderrLines.length > 200) stderrLines.shift();
+        })
         .on('end', () => {
           logger.info('Scene composed', { outputPath: opts.outputPath });
           resolve();
         })
         .on('error', (err) => {
+          // Show the actual ffmpeg stderr — the wrapped error message
+          // alone is usually too vague ("Filter not found" with no context).
+          const tail = stderrLines.slice(-30).join('\n');
           logger.error('Scene composition failed', {
             outputPath: opts.outputPath,
             error: err.message,
+            stderrTail: tail,
           });
-          reject(err);
+          reject(new Error(`${err.message}\nffmpeg stderr:\n${tail}`));
         });
     });
   }
@@ -257,10 +302,12 @@ function stripAudioTags(text: string): string {
 function findSubtitleFont(): string | undefined {
   const candidates: Array<string | undefined> = [
     process.env.SUBTITLE_FONT_PATH,
-    // macOS
-    '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
-    '/System/Library/Fonts/Supplemental/Arial.ttf',
+    // macOS — prefer paths without spaces; ffmpeg filter-graph parsing is
+    // brittle around spaces even when escaped.
     '/System/Library/Fonts/Helvetica.ttc',
+    '/System/Library/Fonts/HelveticaNeue.ttc',
+    '/System/Library/Fonts/Supplemental/Arial.ttf',
+    '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
     '/Library/Fonts/Arial Bold.ttf',
     // Linux
     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
