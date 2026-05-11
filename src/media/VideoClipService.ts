@@ -2,6 +2,7 @@ import { join } from 'path';
 import { readFile, stat } from 'fs/promises';
 import { OpenRouterVideoClient } from '../clients/OpenRouterVideoClient';
 import { runWithConcurrency } from '../pipeline/concurrency';
+import { PipelineEventBus } from '../pipeline/events';
 import { Story, Scene } from '../story/types';
 import { SceneKeyframeResult } from './ImageService';
 import { isCachedFile } from '../utils/io';
@@ -31,6 +32,7 @@ export class VideoClipService {
     sceneIndex: number;
     keyframePath: string;
     outputDir: string;
+    events?: PipelineEventBus;
   }): Promise<SceneClipResult> {
     const path = join(
       opts.outputDir,
@@ -46,6 +48,14 @@ export class VideoClipService {
         path,
         bytes: s.size,
       });
+      opts.events?.publish({
+        type: 'scene.clip.ready',
+        sceneIndex: opts.sceneIndex,
+        path,
+        bytes: s.size,
+        durationSeconds: opts.scene.durationSeconds,
+        fromCache: true,
+      });
       return {
         sceneIndex: opts.sceneIndex,
         path,
@@ -54,6 +64,11 @@ export class VideoClipService {
         fromCache: true,
       };
     }
+
+    opts.events?.publish({
+      type: 'scene.clip.start',
+      sceneIndex: opts.sceneIndex,
+    });
 
     const firstFrame = await readFile(opts.keyframePath);
     const prompt = buildClipPrompt(opts.scene);
@@ -77,6 +92,14 @@ export class VideoClipService {
       durationSeconds: opts.scene.durationSeconds,
     });
 
+    opts.events?.publish({
+      type: 'scene.clip.ready',
+      sceneIndex: opts.sceneIndex,
+      path,
+      bytes,
+      durationSeconds: opts.scene.durationSeconds,
+    });
+
     return {
       sceneIndex: opts.sceneIndex,
       path,
@@ -90,6 +113,7 @@ export class VideoClipService {
     keyframes: SceneKeyframeResult[];
     outputDir: string;
     concurrency: number;
+    events?: PipelineEventBus;
   }): Promise<SceneClipResult[]> {
     logger.info('Generating clips for all scenes', {
       sceneCount: opts.story.scenes.length,
@@ -107,6 +131,7 @@ export class VideoClipService {
         sceneIndex,
         keyframePath: keyframe.path,
         outputDir: opts.outputDir,
+        events: opts.events,
       });
     });
 

@@ -48,6 +48,7 @@ type Args =
   | { mode: 'dry' }
   | { mode: 'loop' }
   | { mode: 'stats' }
+  | { mode: 'server'; port: number }
   | { mode: 'scene'; sceneIndex: number; storyFile: string };
 
 function parseArgs(): Args {
@@ -56,6 +57,16 @@ function parseArgs(): Args {
   if (args.includes('--stats') || args.includes('-s')) return { mode: 'stats' };
   if (args.includes('--dry') || args.includes('-d')) return { mode: 'dry' };
   if (args.includes('--loop') || args.includes('-l')) return { mode: 'loop' };
+
+  const serverIdx = args.findIndex((a) => a === '--server');
+  if (serverIdx !== -1) {
+    const portArg = args[serverIdx + 1];
+    const port = portArg && !portArg.startsWith('--') ? parseInt(portArg, 10) : 5173;
+    if (Number.isNaN(port) || port < 1 || port > 65535) {
+      throw new Error('--server port must be 1-65535');
+    }
+    return { mode: 'server', port };
+  }
 
   const resumeIdx = args.findIndex((a) => a === '--resume');
   if (resumeIdx !== -1) {
@@ -89,6 +100,15 @@ function parseArgs(): Args {
   }
 
   return { mode: 'once' };
+}
+
+async function runServer(agent: OrangeCatAgent, port: number): Promise<void> {
+  const { startServer } = await import('./server/HttpServer');
+  await startServer(config, port, agent);
+  console.log(`\n🌐 OC-Mill UI:  http://127.0.0.1:${port}`);
+  console.log('Press Ctrl+C to stop\n');
+  // Keep process alive — Fastify's listen returns immediately.
+  await new Promise(() => {});
 }
 
 async function runResume(agent: OrangeCatAgent, target: string): Promise<void> {
@@ -317,6 +337,10 @@ async function main(): Promise<void> {
       case 'loop':
         await runLoop(agent);
         break;
+
+      case 'server':
+        await runServer(agent, parsed.port);
+        return; // server doesn't return until process is killed
 
       case 'resume':
         await runResume(agent, parsed.target);

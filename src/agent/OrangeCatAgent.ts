@@ -21,11 +21,14 @@ import { APIRateLimiters } from '../utils/RateLimiter';
 import { Config } from '../utils/config';
 import { atomicWrite, isCachedFile, readJson } from '../utils/io';
 import { logger } from '../utils/logger';
+import { PipelineEventBus } from '../pipeline/events';
 import { Story } from '../story/types';
 
 export interface RunOnceOptions {
   /** Resume a previously-started run from this directory. */
   resumeFromRunDir?: string;
+  /** Optional event bus for streaming progress to the HTTP server / UI. */
+  events?: PipelineEventBus;
 }
 
 export interface AgentRunResult {
@@ -159,6 +162,7 @@ export class OrangeCatAgent {
     }
     await mkdir(runDir, { recursive: true });
     const storyPath = join(runDir, 'story.json');
+    const events = opts.events;
 
     let story: Story | undefined;
     let keyframes: SceneKeyframeResult[] | undefined;
@@ -172,9 +176,11 @@ export class OrangeCatAgent {
         runDir,
         resuming,
       });
+      events?.publish({ type: 'run.start', runDir, resuming });
 
       // Step 1: Story — load from disk if resuming, else generate + persist.
       logger.info('📖 Step 1/7: Story');
+      events?.publish({ type: 'story.start' });
       if (resuming && (await isCachedFile(storyPath, 100))) {
         story = await readJson<Story>(storyPath);
         logger.info('Story loaded from cache', {
@@ -182,11 +188,13 @@ export class OrangeCatAgent {
           title: story.title,
           scenes: story.scenes.length,
         });
+        events?.publish({ type: 'story.ready', story, fromCache: true });
       } else {
         await this.rateLimiters.openrouterLLM.consume('story-generation');
         story = await this.storyService.generateStory();
         await atomicWrite(storyPath, JSON.stringify(story, null, 2));
         logger.info('Story persisted', { storyPath });
+        events?.publish({ type: 'story.ready', story });
       }
 
       // Step 2: Per-scene keyframes
@@ -194,34 +202,44 @@ export class OrangeCatAgent {
       // and the OpenRouter clients handle 429/5xx with retry. The local
       // rate limiter is still wired up for single-call stages (story, upload).
       logger.info('🎨 Step 2/7: Generating scene keyframes');
+      events?.publish({ type: 'stage.start', stage: 'keyframes' });
       const keyframeDir = join(runDir, 'keyframes');
       keyframes = await this.imageService.generateAllKeyframes({
         story,
         outputDir: keyframeDir,
         concurrency: this.config.pipeline.sceneConcurrency,
+        events,
       });
+      events?.publish({ type: 'stage.done', stage: 'keyframes' });
 
       // Step 3: Per-scene video clips (image-to-video, parallel)
       logger.info('🎬 Step 3/7: Generating scene video clips');
+      events?.publish({ type: 'stage.start', stage: 'clips' });
       const clipDir = join(runDir, 'clips');
       clips = await this.videoClipService.generateAllClips({
         story,
         keyframes,
         outputDir: clipDir,
         concurrency: this.config.pipeline.sceneConcurrency,
+        events,
       });
+      events?.publish({ type: 'stage.done', stage: 'clips' });
 
       // Step 4: TTS narration per scene (ElevenLabs, per-mood voices)
       logger.info('🗣️  Step 4/7: Generating narration');
+      events?.publish({ type: 'stage.start', stage: 'narration' });
       const narrationDir = join(runDir, 'narration');
       narrations = await this.narrationService.generateAll({
         story,
         outputDir: narrationDir,
         concurrency: this.config.pipeline.sceneConcurrency,
+        events,
       });
+      events?.publish({ type: 'stage.done', stage: 'narration' });
 
       // Step 5: Compose final video (ffmpeg) — skip if already on disk.
       logger.info('🎞️  Step 5/7: Composing final video');
+      events?.publish({ type: 'stage.start', stage: 'compose' });
       const composeDir = join(runDir, 'compose');
       const finalPath = join(runDir, 'final.mp4');
       if (await isCachedFile(finalPath, 100_000)) {
@@ -241,6 +259,8 @@ export class OrangeCatAgent {
         });
         videoPath = composeResult.path;
       }
+      events?.publish({ type: 'compose.done', path: videoPath });
+      events?.publish({ type: 'stage.done', stage: 'compose' });
 
       // Step 6: Validate composed output
       logger.info('✔️  Step 6/7: Validating composed video');
@@ -254,6 +274,7 @@ export class OrangeCatAgent {
 
       // Step 7: Upload to TikTok
       logger.info('📤 Step 7/7: Uploading to TikTok');
+      events?.publish({ type: 'stage.start', stage: 'upload' });
       const caption = this.captionGenerator.generateCaption(story);
       await this.rateLimiters.tiktok.consume('video-upload');
       const tiktokResult = await this.tiktokClient.uploadVideo({
@@ -261,6 +282,12 @@ export class OrangeCatAgent {
         caption,
         visibility: this.config.tiktok.visibility,
       });
+      events?.publish({
+        type: 'upload.done',
+        postId: tiktokResult.postId,
+        shareUrl: tiktokResult.shareUrl,
+      });
+      events?.publish({ type: 'stage.done', stage: 'upload' });
 
       const duration = Date.now() - startTime;
 
@@ -279,6 +306,11 @@ export class OrangeCatAgent {
       logger.info('✅ Run completed successfully', {
         durationMs: duration,
         tiktokPostId: tiktokResult.postId,
+      });
+      events?.publish({
+        type: 'run.success',
+        tiktokPostId: tiktokResult.postId,
+        tiktokShareUrl: tiktokResult.shareUrl,
       });
 
       return {
@@ -318,6 +350,7 @@ export class OrangeCatAgent {
       logger.error(
         `Run failed. Resume with: npm start -- --resume ${runDir}`
       );
+      events?.publish({ type: 'run.failure', error: errorMessage });
 
       return {
         success: false,

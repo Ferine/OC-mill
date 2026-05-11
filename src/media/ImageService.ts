@@ -4,6 +4,7 @@ import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
 import { CharacterReferenceCache } from '../services/CharacterReferenceCache';
 import { EvalService } from '../llm/EvalService';
 import { runWithConcurrency } from '../pipeline/concurrency';
+import { PipelineEventBus } from '../pipeline/events';
 import { Story, Scene } from '../story/types';
 import { atomicWrite, isCachedFile, readJson } from '../utils/io';
 import { logger } from '../utils/logger';
@@ -57,6 +58,7 @@ export class ImageService {
     scene: Scene;
     sceneIndex: number;
     outputDir: string;
+    events?: PipelineEventBus;
   }): Promise<SceneKeyframeResult> {
     await mkdir(opts.outputDir, { recursive: true });
     const path = join(
@@ -75,6 +77,15 @@ export class ImageService {
             sceneIndex: opts.sceneIndex,
             path,
             evalAttempts: meta.evalAttempts,
+          });
+          opts.events?.publish({
+            type: 'scene.keyframe.ready',
+            sceneIndex: opts.sceneIndex,
+            path,
+            bytes: meta.bytes,
+            evalAttempts: meta.evalAttempts,
+            evalPassed: true,
+            fromCache: true,
           });
           return {
             sceneIndex: opts.sceneIndex,
@@ -105,6 +116,11 @@ export class ImageService {
 
     while (attempt < maxAttempts) {
       attempt++;
+      opts.events?.publish({
+        type: 'scene.keyframe.start',
+        sceneIndex: opts.sceneIndex,
+        attempt,
+      });
       const prompt = this.buildKeyframePrompt(opts.scene, feedback);
 
       const buffer = await this.client.generate({
@@ -134,6 +150,14 @@ export class ImageService {
 
       if (!this.evalService) {
         await writeMeta(true);
+        opts.events?.publish({
+          type: 'scene.keyframe.ready',
+          sceneIndex: opts.sceneIndex,
+          path,
+          bytes: buffer.length,
+          evalAttempts: attempt,
+          evalPassed: true,
+        });
         return {
           sceneIndex: opts.sceneIndex,
           path,
@@ -150,6 +174,14 @@ export class ImageService {
 
       if (evalResult.pass) {
         await writeMeta(true);
+        opts.events?.publish({
+          type: 'scene.keyframe.ready',
+          sceneIndex: opts.sceneIndex,
+          path,
+          bytes: buffer.length,
+          evalAttempts: attempt,
+          evalPassed: true,
+        });
         return {
           sceneIndex: opts.sceneIndex,
           path,
@@ -166,6 +198,12 @@ export class ImageService {
         retriesRemaining: maxAttempts - attempt,
         feedback: feedback.slice(0, 200),
       });
+      opts.events?.publish({
+        type: 'scene.keyframe.evalFail',
+        sceneIndex: opts.sceneIndex,
+        attempt,
+        feedback,
+      });
     }
 
     // Budget exhausted: keep the last keyframe so the run can still proceed,
@@ -181,6 +219,14 @@ export class ImageService {
     logger.error('Keyframe eval budget exhausted — proceeding with last attempt', {
       sceneIndex: opts.sceneIndex,
     });
+    opts.events?.publish({
+      type: 'scene.keyframe.ready',
+      sceneIndex: opts.sceneIndex,
+      path,
+      bytes: lastBuffer.length,
+      evalAttempts: attempt,
+      evalPassed: false,
+    });
     return {
       sceneIndex: opts.sceneIndex,
       path,
@@ -194,6 +240,7 @@ export class ImageService {
     story: Story;
     outputDir: string;
     concurrency: number;
+    events?: PipelineEventBus;
   }): Promise<SceneKeyframeResult[]> {
     logger.info('Generating keyframes for all scenes', {
       sceneCount: opts.story.scenes.length,
@@ -210,6 +257,7 @@ export class ImageService {
           scene,
           sceneIndex,
           outputDir: opts.outputDir,
+          events: opts.events,
         })
     );
     return runWithConcurrency(tasks, opts.concurrency);
