@@ -39,23 +39,23 @@ All generation goes through **OpenRouter** (LLM, image, video, VLM). TTS is **El
 ## Setup
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env
 # Fill in OPENROUTER_API_KEY, ELEVENLABS_API_KEY, TIKTOK_API_KEY
-npm run build
+pnpm build
 ```
 
 ## Usage
 
 ```bash
-npm start                                                # full pipeline, single video
-npm start -- --dry                                       # LLM-only, no media generation
-npm start -- --count 3                                   # 3 sequential runs
-npm start -- --loop                                      # repeat every RUN_INTERVAL_HOURS
-npm start -- --stats                                     # show run history + success rate
+pnpm start                                                # full pipeline, single video
+pnpm start --dry                                          # LLM-only, no media generation
+pnpm start --count 3                                      # 3 sequential runs
+pnpm start --loop                                         # repeat every RUN_INTERVAL_HOURS
+pnpm start --stats                                        # show run history + success rate
 
 # Dev loop: regenerate one scene from a saved story without re-running everything
-npm start -- --scene 4 --story-file /tmp/oc-mill-videos/run-2026-05-09T.../story.json
+pnpm start --scene 4 --story-file /tmp/oc-mill-videos/run-2026-05-09T.../story.json
 ```
 
 ## Configuration

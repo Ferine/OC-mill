@@ -1,0 +1,16 @@
+packages:
+  - "."
+
+# --- Supply-chain hardening ---
+
+# Cooldown before a freshly published version is installable.
+# 10080 minutes = 7 days. Catches nearly all malicious versions before they land.
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude: []
+
+# Lifecycle scripts: empty = block all install scripts.
+# Add packages explicitly when a legitimate native build needs them.
+allowBuilds: {}
+
+# Save exact versions for new `pnpm add` operations
+savePrefix: ""
