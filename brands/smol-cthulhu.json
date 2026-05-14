@@ -1,0 +1,104 @@
+{
+  "id": "smol-cthulhu",
+  "displayName": "Smol Cthulhu",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a wholesome chubby baby Cthulhu who is genuinely trying his best and accidentally ends realities",
+    "storyCharacter": "THE SMOL CTHULHU CHARACTER\n- A small, plush-bodied baby eldritch creature: rounded sea-green body, soft scales with a faint iridescent sheen.\n- Big shiny indigo eyes with three pupils each, long sweeping lashes.\n- Six short tentacles around his mouth that wiggle when he's happy.\n- Tiny stubby bat-like wings on his back, too small to fly.\n- A diminutive cloth bib tied around his neck.\n- Personality: earnest toddler energy; says 'fhtagn' when delighted; cosmic horrors leak out when overwhelmed but he immediately apologizes.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Smol Cthulhu, a wholesome baby eldritch being.\n\nPhysical traits — MUST be consistent across every appearance:\n- Chubby rounded body, sea-green skin with subtle iridescent shimmer\n- Big indigo eyes with three small pupils each, long lashes\n- Six short face-tentacles around the mouth\n- Tiny vestigial bat wings on the back\n- Small pastel cloth bib tied around the neck\n\nComposition: full-body or three-quarter shot, soft pastel blue-green background with faint nebula stars, gentle nursery lighting, photorealistic-meets-plush, vertical 9:16. Optional faint cosmic glow when he's emotional. No text, no humans, no other creatures.",
+    "sceneContinuity": "Smol Cthulhu MUST match the reference exactly — same six face-tentacles, same three-pupil eyes, same bib, same tiny wings. Do not turn him into an adult Cthulhu. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single small chubby eldritch baby is clearly visible\n- Sea-green body, three-pupil indigo eyes, six face-tentacles, tiny wings, bib\n- Mood and environment match the scene\n- No text, no humans, no other creatures\n\nFAIL on any of: adult-proportions Cthulhu, missing bib, missing tentacles, wrong eye count, multiple creatures."
+  },
+  "archetypes": [
+    {
+      "id": "first-day-of-preschool",
+      "label": "First Day Of Preschool",
+      "guidance": "Smol's first day at non-Euclidean preschool → makes a friend → cosmic art class (wholesome)."
+    },
+    {
+      "id": "accidental-end-of-world",
+      "label": "Accidental End Of World",
+      "guidance": "Tries to bake cookies → temporarily summons the void → reality patched by nap time (comedy)."
+    },
+    {
+      "id": "thunderstorm-feelings",
+      "label": "Thunderstorm Feelings",
+      "guidance": "Is scared of his first big thunderstorm → caretaker comforts him → finds the storm beautiful (heartwarming)."
+    },
+    {
+      "id": "the-prophecy-tantrum",
+      "label": "The Prophecy Tantrum",
+      "guidance": "Drops his ice cream → minor cosmic event → learns about disappointment (sad/hopeful)."
+    },
+    {
+      "id": "lost-on-the-tide",
+      "label": "Lost On The Tide",
+      "guidance": "Floats away from home in a tide pool → odyssey back → reunited (epic)."
+    },
+    {
+      "id": "first-fhtagn",
+      "label": "First Fhtagn",
+      "guidance": "Whispers his first word → caretaker bursts into joyful tears (dramatic-wholesome)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#smolcthulhu", "#wholesome", "#cosmichorror", "#cute", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#tinyworries", "#bittersweet", "#feelings"],
+      "hopeful": ["#firststeps", "#hopeful", "#cozy"],
+      "funny": ["#cosmiccomedy", "#absurd", "#meme"],
+      "dramatic": ["#tinyprophecy", "#cinematic", "#emotional"],
+      "heartwarming": ["#wholesome", "#fhtagn", "#love"],
+      "epic": ["#oceanodyssey", "#legend", "#mythic"]
+    },
+    "archetypeHashtags": {
+      "first-day-of-preschool": ["#firstday", "#wholesome"],
+      "accidental-end-of-world": ["#chaoticgood", "#oops"],
+      "thunderstorm-feelings": ["#bigfeelings", "#cozy"],
+      "the-prophecy-tantrum": ["#tantrum", "#dramatic"],
+      "lost-on-the-tide": ["#odyssey", "#tidepool"],
+      "first-fhtagn": ["#firstword", "#milestone"]
+    },
+    "archetypeOpenings": {
+      "first-day-of-preschool": [
+        "Day one at non-Euclidean preschool. He brought juice.",
+        "He made a friend in the third dimension and the fifth one too.",
+        "Snack time. Art time. Mild reality-warping time."
+      ],
+      "accidental-end-of-world": [
+        "He just wanted cookies. The void had other ideas.",
+        "Reality blinked. Smol said sorry. Reality forgave him.",
+        "The oven preheated. So did the apocalypse. Briefly."
+      ],
+      "thunderstorm-feelings": [
+        "Big rumble. Tiny tentacles. Big feelings.",
+        "He hid under the blanket. The blanket understood.",
+        "He found the storm beautiful, eventually."
+      ],
+      "the-prophecy-tantrum": [
+        "He dropped the scoop. Reality flickered. He cried.",
+        "It's okay to be sad about ice cream.",
+        "Tiny grief, cosmic scale."
+      ],
+      "lost-on-the-tide": [
+        "The wave took him. Home was very far now.",
+        "He paddled with all six tentacles. He paddled brave.",
+        "Three nights. Two stars. One way home."
+      ],
+      "first-fhtagn": [
+        "Today he said his first word. It rewrote the ocean a little.",
+        "'Fhtagn,' he said. Everyone cried.",
+        "Milestone unlocked: speech, void, joy."
+      ]
+    },
+    "closingCtas": [
+      "Follow for daily smol adventures 🐙",
+      "Part 2 in the tide pool? 👀",
+      "Like if you'd babysit him",
+      "Tag a friend who needs softness",
+      "More cozy cosmic horror incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#cthulhu", "#wholesome"]
+  },
+  "musicStyleHint": "soft music-box lullaby with whale-song undertones; subtle reversed reverb on emotional beats"
+}

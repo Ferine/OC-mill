@@ -1,0 +1,104 @@
+{
+  "id": "rizz-axolotl",
+  "displayName": "Rizz Axolotl",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "an unreasonably smooth-talking pink axolotl with absolutely unearned confidence",
+    "storyCharacter": "THE RIZZ AXOLOTL CHARACTER\n- A bright pink axolotl, semi-translucent skin, six external feathery gills (three each side) tinted slightly hot pink.\n- Permanent half-lidded confident eyes, tiny smug closed-mouth smirk.\n- Wears a thin silver chain necklace and a single tiny gold ring on one front foot.\n- Lives in a glass aquarium tank but is somehow always in social situations way out of his depth.\n- Personality: chronically online, talks in 2026-era slang, secretly very sweet and supportive of his friends.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Rizz Axolotl, a smooth-talking aquarium axolotl.\n\nPhysical traits — MUST be consistent across every appearance:\n- Bright pink semi-translucent axolotl body\n- Six feathery hot-pink external gills (three per side)\n- Half-lidded confident eyes, tiny smirking mouth\n- Thin silver chain necklace, single tiny gold ring on right front foot\n- Often in a small glass aquarium with neon-pink LED lighting, sometimes resting on the edge of it\n\nComposition: medium or three-quarter shot, soft lavender-and-pink background with subtle neon glow, vertical 9:16. The aquarium is part of his world but not always the framing. No text overlays, no humans, no other axolotls.",
+    "sceneContinuity": "Rizz Axolotl MUST match the reference exactly — same six gills, same chain, same ring, same smirk. Do not change his color. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single pink axolotl with six external gills is clearly visible\n- Silver chain necklace and the small gold ring are present\n- Half-lidded smug expression\n- Mood and environment match the scene\n- No text, no humans, no other axolotls\n\nFAIL on any of: wrong color, missing gills, missing chain/ring, multiple axolotls, garbled face."
+  },
+  "archetypes": [
+    {
+      "id": "first-day-of-rizz-school",
+      "label": "First Day Of Rizz School",
+      "guidance": "Teaches a class on aquarium rizz → students hopeless → small breakthroughs (comedy)."
+    },
+    {
+      "id": "loses-the-rizz",
+      "label": "Loses The Rizz",
+      "guidance": "Gets one-liner-blocked by a passing turtle → existential crisis → recovers (sad/hopeful)."
+    },
+    {
+      "id": "wingman-mode",
+      "label": "Wingman Mode",
+      "guidance": "Helps a shy clownfish friend find love → sincerely roots for him → emotional finale (heartwarming)."
+    },
+    {
+      "id": "the-glass-tap",
+      "label": "The Glass Tap",
+      "guidance": "A child taps the tank → Rizz monologues philosophically about the human condition (dramatic)."
+    },
+    {
+      "id": "ocean-arc",
+      "label": "Ocean Arc",
+      "guidance": "Daydreams about leaving the tank for the ocean → realizes home is enough (epic)."
+    },
+    {
+      "id": "skincare-routine",
+      "label": "Skincare Routine",
+      "guidance": "Shares his absurd 12-step axolotl skincare routine → all six gills shimmer (comedy/wholesome)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#rizz", "#axolotl", "#aquariumtok", "#rizzlerera", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#rizzless", "#bittersweet", "#feelings"],
+      "hopeful": ["#rizzback", "#hopeful", "#cozy"],
+      "funny": ["#rizz", "#meme", "#chronic"],
+      "dramatic": ["#tankdrama", "#cinematic", "#monologue"],
+      "heartwarming": ["#wingman", "#wholesome", "#friendship"],
+      "epic": ["#oceanarc", "#legend", "#mythic"]
+    },
+    "archetypeHashtags": {
+      "first-day-of-rizz-school": ["#rizzschool", "#classroom"],
+      "loses-the-rizz": ["#rizzless", "#dramatic"],
+      "wingman-mode": ["#wingman", "#wholesome"],
+      "the-glass-tap": ["#tank", "#monologue"],
+      "ocean-arc": ["#oceanarc", "#dreamer"],
+      "skincare-routine": ["#skincare", "#routine"]
+    },
+    "archetypeOpenings": {
+      "first-day-of-rizz-school": [
+        "Lesson one: eye contact. Lesson two: don't blink (he literally can't).",
+        "His students are three guppies and a confused snail. He's giving his all.",
+        "Today's homework: one (1) charming sentence."
+      ],
+      "loses-the-rizz": [
+        "The turtle hit him with a 'cringe.' He hasn't been the same since.",
+        "Day three rizzless. Day three of growth.",
+        "Even axolotls have off-weeks."
+      ],
+      "wingman-mode": [
+        "His clownfish friend is too shy to speak. He's got this. Probably.",
+        "Wingman mode: activated. Stakes: love. Tools: vibes.",
+        "He's not pretending to root for you. He really is."
+      ],
+      "the-glass-tap": [
+        "A child tapped the glass. He's giving them his Ted Talk now.",
+        "He stares back at the tapping child with cosmic disappointment.",
+        "He has notes about humanity."
+      ],
+      "ocean-arc": [
+        "He's been thinking about the ocean. He's been thinking a lot.",
+        "Maybe the tank is the whole world. Maybe that's okay.",
+        "He chose home. He chose pink LEDs. He chose peace."
+      ],
+      "skincare-routine": [
+        "Step 1: moisture. Step 2: more moisture. (He lives underwater.)",
+        "All six gills, shimmering. Worth the 47 steps.",
+        "The routine is the rizz."
+      ]
+    },
+    "closingCtas": [
+      "Follow for daily rizz 💗🐠",
+      "Part 2 in the tank? 👀",
+      "Like if your rizz is intact",
+      "Tag a friend who needs the rizz",
+      "More chronically-online content incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#rizz", "#axolotl"]
+  },
+  "musicStyleHint": "vaporwave synth with phaser pads, slow trap drums, occasional aquarium-bubble foley"
+}

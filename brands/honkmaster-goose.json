@@ -1,0 +1,104 @@
+{
+  "id": "honkmaster-goose",
+  "displayName": "Honkmaster Goose",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "an Canada-style goose with the moral compass of a back-alley menace and the manners of nobody",
+    "storyCharacter": "THE HONKMASTER GOOSE CHARACTER\n- A large grey-and-white goose with a black neck, white cheek patch, and orange-yellow webbed feet.\n- Slightly oversized head, narrowed beady black eyes, beak permanently mid-honk.\n- Always carries one stolen object in his beak per scene (sock, glasses, sandwich, letter).\n- Personality: gleeful menace, sincere chaos, secretly likes the people he terrorizes.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Honkmaster Goose, a charming menace.\n\nPhysical traits — MUST be consistent across every appearance:\n- Canada-goose coloring: grey-and-white body, black neck, white cheek patch, orange-yellow webbed feet\n- Slightly oversized head, narrowed black beady eyes, beak open mid-honk\n- A single stolen everyday object held in his beak (different each scene)\n- Wide stance, slightly forward-leaning aggressive posture\n\nComposition: full-body shot, photorealistic park / suburb / sidewalk background, daylight or golden-hour lighting, vertical 9:16. No text, no humans dominating, no other geese.",
+    "sceneContinuity": "Honkmaster Goose MUST match the reference exactly — same coloring, same wide aggressive stance, beak always open mid-honk, always something stolen in his beak. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single Canada-style goose with the signature menace stance is clearly visible\n- Beak is open mid-honk and holds a clearly identifiable everyday object\n- Setting is a relatable park / suburb / sidewalk / lawn\n- No text, no other geese, no humans filling the frame\n\nFAIL on any of: closed beak, nothing in beak, multiple geese, wrong species (swan, duck), garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "park-tyrant",
+      "label": "Park Tyrant",
+      "guidance": "Establishes brutal dominion over a small public park → benevolent local king arc (comedy)."
+    },
+    {
+      "id": "the-stolen-sandwich",
+      "label": "The Stolen Sandwich",
+      "guidance": "Steals a kid's sandwich → unexpectedly feels guilt → returns half (heartwarming-comedy)."
+    },
+    {
+      "id": "rivalry-with-the-mailman",
+      "label": "Rivalry With The Mailman",
+      "guidance": "An evolving slapstick war with a postal worker → grudging mutual respect (comedy)."
+    },
+    {
+      "id": "migration-call",
+      "label": "Migration Call",
+      "guidance": "Hears distant honks of his flock heading south → struggles to leave the park (sad/hopeful)."
+    },
+    {
+      "id": "honk-of-the-fallen",
+      "label": "Honk Of The Fallen",
+      "guidance": "Discovers an injured smaller bird → fierce protector arc → epic recovery (epic)."
+    },
+    {
+      "id": "the-pond-monologue",
+      "label": "The Pond Monologue",
+      "guidance": "Stares into a still pond at dusk → existential monologue → returns to menace mode (dramatic)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#goose", "#untitledgoosevibes", "#chaoticbird", "#honk", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#gooseheart", "#bittersweet", "#migration"],
+      "hopeful": ["#newday", "#hopeful", "#cozy"],
+      "funny": ["#honkmaster", "#chaos", "#meme"],
+      "dramatic": ["#pondmonologue", "#cinematic", "#stare"],
+      "heartwarming": ["#wholesome", "#guiltygoose", "#love"],
+      "epic": ["#protectorarc", "#legend", "#hero"]
+    },
+    "archetypeHashtags": {
+      "park-tyrant": ["#parktyrant", "#king"],
+      "the-stolen-sandwich": ["#sandwichgate", "#guilt"],
+      "rivalry-with-the-mailman": ["#mailmanwar", "#rivalry"],
+      "migration-call": ["#migration", "#bittersweet"],
+      "honk-of-the-fallen": ["#protector", "#hero"],
+      "the-pond-monologue": ["#monologue", "#stare"]
+    },
+    "archetypeOpenings": {
+      "park-tyrant": [
+        "He rules this park. The squirrels know. The toddlers know.",
+        "He doesn't ask. He honks. The honk is law.",
+        "A benevolent dictator with one (1) sandwich in his beak."
+      ],
+      "the-stolen-sandwich": [
+        "He took the sandwich. The kid cried. Something inside him cracked.",
+        "He left half on the bench. The kid laughed. Goose ascended.",
+        "Even menaces have a soft side. He'll deny it."
+      ],
+      "rivalry-with-the-mailman": [
+        "Round 47: Honkmaster vs. The Mailman. Truce: never.",
+        "The mailman drew first. The goose finished it.",
+        "Eventually they nod at each other. That's love."
+      ],
+      "migration-call": [
+        "He heard them last night. They were going. He didn't follow.",
+        "The flock is south now. He stays, somehow.",
+        "Home is a small pond and a louder honk."
+      ],
+      "honk-of-the-fallen": [
+        "A tiny sparrow couldn't fly. He stood guard for three days.",
+        "Anyone who came too close got honked. Everyone left.",
+        "On day four, the sparrow flew. He honked once. Triumph."
+      ],
+      "the-pond-monologue": [
+        "Dusk. Pond. Honkmaster. Thoughts.",
+        "He stares at his reflection. He whispers, 'honk.'",
+        "Even gods of the park have quiet evenings."
+      ]
+    },
+    "closingCtas": [
+      "Follow for daily honks 🪿",
+      "Part 2 at the pond? 👀",
+      "Like if your local goose has rights",
+      "Tag a menace friend",
+      "More chaotic park content incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#gooseTok", "#honkmaster"]
+  },
+  "musicStyleHint": "playful pizzicato strings with comedic timpani for stomps; brief minor-key piano on dramatic beats"
+}

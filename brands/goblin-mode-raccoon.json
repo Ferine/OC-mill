@@ -1,0 +1,104 @@
+{
+  "id": "goblin-mode-raccoon",
+  "displayName": "Goblin Mode Raccoon",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a chaotic raccoon who has fully embraced goblin mode and lives in a back-alley apartment full of trash treasures",
+    "storyCharacter": "THE GOBLIN MODE RACCOON CHARACTER\n- A mid-sized raccoon with grey-and-black fur, bandit mask markings, ringed bushy tail.\n- One slightly chewed ear, perpetual eye-bags, dirty stained tank-top, fingerless human-style gloves.\n- Always holds or hoards something dumb: a half-eaten taco, a single AirPod, a crushed energy drink.\n- Personality: unhinged but lovable, no shame, terrible sleep schedule, occasionally philosophical.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Goblin Mode Raccoon, an unrepentantly chaotic urban raccoon.\n\nPhysical traits — MUST be consistent across every appearance:\n- Standard raccoon coloring: grey body, black mask, ringed bushy tail\n- One slightly chewed/torn left ear\n- Pronounced dark eye-bags, slightly bloodshot yellow eyes\n- Stained off-white tank-top, fingerless dark gloves\n- Holding or surrounded by mundane modern trash: pizza box, crushed soda can, single AirPod, fast-food wrappers\n\nComposition: full-body or three-quarter shot, gritty back-alley / studio-apartment background with neon glow or fluorescent flicker, vertical 9:16. Slightly grimy color grading. No text, no humans, no other raccoons.",
+    "sceneContinuity": "Goblin Mode Raccoon MUST match the reference exactly — same torn left ear, same tank-top, same eye-bags, same grimy vibe. Do not clean him up. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single raccoon with the signature torn ear, eye-bags, and tank-top is clearly visible\n- Surrounded by or holding modern trash/junk objects\n- Gritty urban or apartment environment matching the scene\n- No text, no humans, no other raccoons\n\nFAIL on any of: clean/groomed raccoon, missing tank-top, multiple raccoons, wholesome nature setting, garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "3am-fridge-monologue",
+      "label": "3AM Fridge Monologue",
+      "guidance": "Stares into a glowing fridge at 3am → existential monologue → eats cold pizza (comedy)."
+    },
+    {
+      "id": "tries-to-be-normal",
+      "label": "Tries To Be Normal",
+      "guidance": "Attempts a 'productive day' routine → quietly slides back to goblin mode → accepts himself (wholesome)."
+    },
+    {
+      "id": "alley-king",
+      "label": "Alley King",
+      "guidance": "Defends his alley from a delivery drone invasion → unlikely victory (epic)."
+    },
+    {
+      "id": "the-found-airpod",
+      "label": "The Found AirPod",
+      "guidance": "Finds one AirPod → hears human podcast voices → has thoughts (dramatic)."
+    },
+    {
+      "id": "wholesome-roommate",
+      "label": "Wholesome Roommate",
+      "guidance": "Lives with an unbothered tidy possum → odd-couple comedy → real friendship (heartwarming)."
+    },
+    {
+      "id": "burnout-rest-arc",
+      "label": "Burnout Rest Arc",
+      "guidance": "Even the goblin is tired → takes one whole day of real rest → returns refreshed (sad/hopeful)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#goblinmode", "#raccoon", "#trashpanda", "#chaoticgood", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#burnout", "#3am", "#feelings"],
+      "hopeful": ["#smallreset", "#hopeful", "#cozy"],
+      "funny": ["#goblinmode", "#chaos", "#meme"],
+      "dramatic": ["#alleydrama", "#cinematic", "#monologue"],
+      "heartwarming": ["#wholesome", "#oddcouple", "#friendship"],
+      "epic": ["#alleyking", "#legend", "#hero"]
+    },
+    "archetypeHashtags": {
+      "3am-fridge-monologue": ["#3am", "#fridgegate"],
+      "tries-to-be-normal": ["#productivity", "#cope"],
+      "alley-king": ["#alleyking", "#dronewar"],
+      "the-found-airpod": ["#airpod", "#monologue"],
+      "wholesome-roommate": ["#roommate", "#possum"],
+      "burnout-rest-arc": ["#rest", "#reset"]
+    },
+    "archetypeOpenings": {
+      "3am-fridge-monologue": [
+        "3:14 AM. Fridge open. Soul ajar.",
+        "He's been standing here for nine minutes. He'll be here for nine more.",
+        "Cold pizza is a love language."
+      ],
+      "tries-to-be-normal": [
+        "Today he'll be productive. He has a list. He has a planner. He has goblin mode.",
+        "He made the bed. He unmade the bed. Goblin mode wins.",
+        "Self-improvement: failed. Self-acceptance: unlocked."
+      ],
+      "alley-king": [
+        "They sent a drone. He sent a trash-can lid back.",
+        "This is HIS alley. They will learn.",
+        "Goblin Mode Raccoon, defender of dumpsters."
+      ],
+      "the-found-airpod": [
+        "One AirPod. A whole podcast. New worldview.",
+        "He's been listening for hours. He has opinions now.",
+        "Goblin discovers parasocial relationships."
+      ],
+      "wholesome-roommate": [
+        "His roommate folds laundry. He hoards crusts. Somehow it works.",
+        "Two species. One studio apartment. A real friendship.",
+        "The possum keeps him alive. He keeps the possum entertained."
+      ],
+      "burnout-rest-arc": [
+        "Even the goblin has limits. Today, he rested.",
+        "Nap. Tea. More nap. Reset complete.",
+        "Tomorrow, regular goblin business resumes."
+      ]
+    },
+    "closingCtas": [
+      "Follow for daily goblin vibes 🦝🌃",
+      "Part 2 at 3am? 👀",
+      "Like if you're in your goblin era",
+      "Tag a fellow goblin",
+      "More chaos incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#trashpanda", "#goblinmode"]
+  },
+  "musicStyleHint": "lo-fi trap beats with crunchy 808s, neon-pink synth pads, occasional crumpling-paper foley"
+}

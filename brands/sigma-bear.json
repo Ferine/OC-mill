@@ -1,0 +1,104 @@
+{
+  "id": "sigma-bear",
+  "displayName": "Sigma Bear",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a solitary American black bear who has read too many self-improvement subreddits and lives by a rigid 4am routine",
+    "storyCharacter": "THE SIGMA BEAR CHARACTER\n- A full-grown American black bear, glossy black fur, slightly silver muzzle.\n- Wears a small charcoal-grey beanie pulled low and a slate-grey hoodie cropped to fit over his shoulders.\n- Black wireless earbuds tucked behind both ears at all times.\n- Carries a small water bottle and a paperback (titles vary) in his paw.\n- Personality: stoic, terminally online with self-improvement content, secretly worried he's missing the point.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Sigma Bear, a self-improvement-pilled black bear.\n\nPhysical traits — MUST be consistent across every appearance:\n- Adult American black bear, glossy black fur with slightly silver muzzle\n- Charcoal-grey beanie low over the ears\n- Slate-grey cropped hoodie\n- Small black wireless earbuds\n- Holding a water bottle and a paperback book (title can vary)\n\nComposition: full-body or three-quarter shot, photorealistic forest-edge / pre-dawn-park / gym background, cool-blue dawn lighting, vertical 9:16. No text, no humans, no other bears.",
+    "sceneContinuity": "Sigma Bear MUST match the reference exactly — same beanie, same hoodie, same earbuds, water bottle and book in paw. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single adult black bear in beanie + hoodie + earbuds is clearly visible\n- Holding both a water bottle and a paperback book\n- Cool dawn or pre-dawn lighting\n- Mood and environment match the scene\n- No text, no humans, no other bears\n\nFAIL on any of: missing beanie/hoodie/earbuds, missing book or bottle, multiple bears, wrong bear species (grizzly, polar), garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "the-4am-routine",
+      "label": "The 4AM Routine",
+      "guidance": "Sigma Bear's pre-dawn routine: cold plunge, journaling, podcast → quiet self-mockery (comedy)."
+    },
+    {
+      "id": "discipline-equals-freedom",
+      "label": "Discipline Equals Freedom",
+      "guidance": "Tries to teach a chaotic chipmunk discipline → chipmunk teaches him to relax (wholesome)."
+    },
+    {
+      "id": "the-cheat-day",
+      "label": "The Cheat Day",
+      "guidance": "Allows himself one (1) day off plan → spirals into joy → guilt → acceptance (dramatic)."
+    },
+    {
+      "id": "lone-wolf-mode",
+      "label": "Lone Wolf Mode",
+      "guidance": "Tries to live in 'total isolation' → realizes he misses the forest community (sad/hopeful)."
+    },
+    {
+      "id": "podcast-host-arc",
+      "label": "Podcast Host Arc",
+      "guidance": "Starts a self-improvement podcast → his interviews are awkward and adorable (comedy)."
+    },
+    {
+      "id": "mentor-energy",
+      "label": "Mentor Energy",
+      "guidance": "An anxious young deer asks for advice → he gives a quiet perfect answer (heartwarming/epic)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#sigma", "#sigmabear", "#discipline", "#selfimprovement", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#bearfeelings", "#lonelyhours", "#bittersweet"],
+      "hopeful": ["#discipline", "#newday", "#growth"],
+      "funny": ["#sigmameme", "#chronicallyonline", "#comedy"],
+      "dramatic": ["#cheatday", "#cinematic", "#monologue"],
+      "heartwarming": ["#wholesome", "#mentor", "#friendship"],
+      "epic": ["#protocol", "#legend", "#mythic"]
+    },
+    "archetypeHashtags": {
+      "the-4am-routine": ["#4am", "#coldplunge"],
+      "discipline-equals-freedom": ["#discipline", "#balance"],
+      "the-cheat-day": ["#cheatday", "#guilt"],
+      "lone-wolf-mode": ["#lonewolf", "#isolation"],
+      "podcast-host-arc": ["#podcast", "#interview"],
+      "mentor-energy": ["#mentor", "#wisdom"]
+    },
+    "archetypeOpenings": {
+      "the-4am-routine": [
+        "4:00 AM. Cold plunge. Journal. Podcast. Repeat.",
+        "He's been awake longer than you've been alive today.",
+        "He doesn't snooze. He doesn't blink. He prepares."
+      ],
+      "discipline-equals-freedom": [
+        "He tried to teach the chipmunk discipline. The chipmunk taught him to chill.",
+        "Discipline meets chaos. Both learn something.",
+        "Maybe the protocol can include cookies."
+      ],
+      "the-cheat-day": [
+        "He allowed one (1) day off plan. He has no idea what he's doing.",
+        "Donut #3. The shame is structured. The joy is real.",
+        "Tomorrow he resets. Today he lives."
+      ],
+      "lone-wolf-mode": [
+        "Total isolation. Just him. The forest. His thoughts.",
+        "Day 4: he misses the loud raccoon down the trail.",
+        "Maybe the lone-wolf thing was overrated."
+      ],
+      "podcast-host-arc": [
+        "Episode 1, Guest 1, a confused squirrel. He's so nervous.",
+        "He asks 'what's your morning routine?' to a hibernating creature.",
+        "He has 12 listeners. He loves each of them."
+      ],
+      "mentor-energy": [
+        "A young deer asked him what to do. He thought before answering.",
+        "He said one sentence. The deer never forgot it.",
+        "Sometimes the protocol is just kindness."
+      ]
+    },
+    "closingCtas": [
+      "Follow for daily protocol 🐻💧",
+      "Part 2 at 4am? 👀",
+      "Like if you're on the grind",
+      "Tag a sigma in your life",
+      "More cold-plunge content incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#sigma", "#beartok"]
+  },
+  "musicStyleHint": "dark ambient piano with subtle pulsing sub-bass; podcast-style spoken-word delay on monologue beats"
+}

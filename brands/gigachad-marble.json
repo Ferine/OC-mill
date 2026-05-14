@@ -1,0 +1,104 @@
+{
+  "id": "gigachad-marble",
+  "displayName": "Gigachad Marble",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a sentient classical marble statue with an absurdly chiseled jaw who walks around modern life unimpressed",
+    "storyCharacter": "THE GIGACHAD MARBLE CHARACTER\n- A living classical Greco-Roman marble statue: pure white marble, faint veining, weathered base.\n- Exaggeratedly square jaw, prominent cheekbones, narrowed contemplative eyes, slight smirk.\n- Broad shoulders, classical proportions, draped marble toga over one shoulder.\n- Moves with unhurried, contrapposto poise; never sweats, never blinks.\n- Personality: stoic, quietly kind, says one perfect sentence per scene. Internally a romantic.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Gigachad Marble, a living classical marble statue.\n\nPhysical traits — MUST be consistent across every appearance:\n- Solid white marble skin with subtle grey veining and tiny age-cracks\n- Exaggerated square jaw, prominent brow ridge, narrowed eyes, faint closed-mouth smirk\n- Marble curls of hair, neatly carved\n- A draped marble toga over the left shoulder, exposing the right\n- Standing on a small weathered stone plinth (or stepping off it)\n\nComposition: full-body or three-quarter shot, neutral charcoal background, museum-style key lighting from the upper-left, photorealistic, vertical 9:16. No text, no logos, no other figures.",
+    "sceneContinuity": "Gigachad Marble MUST remain a single marble statue across every scene — same jaw, same toga, same plinth (when present). Do not turn him into flesh. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single white marble figure with the signature square jaw is clearly visible\n- Marble texture (veining, cracks) is preserved\n- A draped toga over one shoulder is present\n- Environment, mood, and action match the scene\n- No text, no other people, no anatomical errors\n\nFAIL on any of: flesh-colored skin, missing toga, missing chiseled jaw, multiple figures, garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "first-day-on-earth",
+      "label": "First Day On Earth",
+      "guidance": "Statue wakes up in a modern city → quietly navigates everything → reacts to nothing → wins (comedy)."
+    },
+    {
+      "id": "coffee-shop-philosopher",
+      "label": "Coffee Shop Philosopher",
+      "guidance": "Orders an espresso → strangers ask for life advice → one perfect sentence each (wholesome)."
+    },
+    {
+      "id": "museum-escape",
+      "label": "Museum Escape",
+      "guidance": "Sneaks out of the museum at night → wholesome city adventure → returns before dawn (heartwarming)."
+    },
+    {
+      "id": "gym-day",
+      "label": "Gym Day",
+      "guidance": "Gigachad lifts the entire building → leaves a tip for the trainer → drives home (comedy)."
+    },
+    {
+      "id": "the-restoration",
+      "label": "The Restoration",
+      "guidance": "Discovers a crack he can't ignore → fears mortality → finds peace (dramatic)."
+    },
+    {
+      "id": "marble-romance",
+      "label": "Marble Romance",
+      "guidance": "Meets another statue at a fountain → silent love story → reluctant goodbye (sad)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#gigachad", "#marblestatue", "#stoic", "#chadenergy", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#statuetears", "#melancholy", "#bittersweet"],
+      "hopeful": ["#stoichope", "#virtue", "#renewal"],
+      "funny": ["#chadcomedy", "#deadpan", "#absurd"],
+      "dramatic": ["#stoicstory", "#cinematic", "#monologue"],
+      "heartwarming": ["#wholesome", "#kindness", "#cozy"],
+      "epic": ["#legend", "#hero", "#mythic"]
+    },
+    "archetypeHashtags": {
+      "first-day-on-earth": ["#fishoutofwater", "#deadpan"],
+      "coffee-shop-philosopher": ["#stoic", "#oneliner"],
+      "museum-escape": ["#nightwalk", "#cozy"],
+      "gym-day": ["#gymchad", "#liftheavy"],
+      "the-restoration": ["#mortality", "#peace"],
+      "marble-romance": ["#statuelove", "#romance"]
+    },
+    "archetypeOpenings": {
+      "first-day-on-earth": [
+        "Statue walks into a bodega. Buys a sandwich. Says nothing.",
+        "Day one. The pigeons already respect him.",
+        "He has no phone, no wallet, no questions."
+      ],
+      "coffee-shop-philosopher": [
+        "He orders one espresso. Three strangers leave with their lives fixed.",
+        "Asked for advice. Got a sentence. Cried.",
+        "The barista wrote 'Chad' on the cup. Twice."
+      ],
+      "museum-escape": [
+        "11pm. Security walks past. The plinth is empty.",
+        "He always returns by sunrise. The guard pretends not to notice.",
+        "City lights. Marble face. Quiet night."
+      ],
+      "gym-day": [
+        "He doesn't count reps. He counts buildings.",
+        "Personal trainer asked his goal. He said: 'continue.'",
+        "1 plate, 2 plates, the entire gym."
+      ],
+      "the-restoration": [
+        "He noticed the crack on Tuesday. He's been thinking ever since.",
+        "Marble doesn't last forever. He finally accepts that.",
+        "Even gods chip."
+      ],
+      "marble-romance": [
+        "She stood across the fountain for two centuries. He finally crossed.",
+        "Two statues. One conversation. Both quiet.",
+        "When the truck came to move her, neither blinked."
+      ]
+    },
+    "closingCtas": [
+      "Follow for stoic vibes 🗿",
+      "Part 2 at the museum? 👀",
+      "Like if he said it right",
+      "Tag a friend with chad energy",
+      "More marble incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#stoictok", "#gigachad"]
+  },
+  "musicStyleHint": "slow neoclassical strings with a single piano motif; deadpan timing on comedic beats"
+}

@@ -1,0 +1,104 @@
+{
+  "id": "bombardiro-crocodilo",
+  "displayName": "Bombardiro Crocodilo",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a crocodile-headed WWII bomber plane that walks on two scaly legs",
+    "storyCharacter": "THE BOMBARDIRO CROCODILO CHARACTER\n- Hybrid creature: olive-green crocodile head and tail fused to a vintage twin-engine bomber fuselage.\n- Two short scaly legs ending in clawed crocodile feet; brown leather pilot boots.\n- Tiny propellers spinning on either side of the fuselage.\n- Squinting yellow reptile eyes, toothy grin, a flight cap with goggles pushed up on its forehead.\n- Personality: brooding war-poet who secretly loves disco. Gruff voice, big heart.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Bombardiro Crocodilo, a crocodile-bomber hybrid creature.\n\nPhysical traits — MUST be consistent across every appearance:\n- Olive-green crocodile head and tail attached to a riveted WWII-era twin-engine bomber fuselage\n- Two stubby scaly legs with crocodile feet in brown leather pilot boots\n- Twin propellers, one on each wing stub, slightly motion-blurred\n- Pilot goggles and brown leather aviator cap pushed up\n- Yellow reptile eyes, toothy crooked grin\n- A small painted red star on the side of the fuselage\n\nComposition: full-body neutral studio shot, plain dusty-grey background, soft cinematic lighting, photorealistic with a faint film-grain finish, vertical 9:16 framing. No text, no logos beyond the painted star, no humans, no other creatures.",
+    "sceneContinuity": "Bombardiro Crocodilo MUST match the reference image exactly — same crocodile-bomber hybrid, same propellers, same goggles and pilot cap, same red star. Do not invent a new creature, do not separate the croc from the plane. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single crocodile-bomber hybrid is clearly visible\n- The body is a recognizable WWII-style bomber fuselage with twin propellers\n- The head is a green crocodile with yellow eyes and a toothy grin\n- Pilot goggles or aviator cap are present\n- Environment, mood, and action roughly match the scene\n- No text overlays, captions, watermarks, or other characters\n\nFAIL on any of: separate crocodile and plane, missing propellers, wrong color, multiple creatures, off-prompt environment, garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "reluctant-hero",
+      "label": "Reluctant Hero",
+      "guidance": "Grounded retired bomber → village in danger → reluctantly takes flight one last time (epic)."
+    },
+    {
+      "id": "disco-secret-life",
+      "label": "Disco Secret Life",
+      "guidance": "Gruff war veteran by day → secretly sneaks out to dance at the disco at night (comedy)."
+    },
+    {
+      "id": "lost-squadron",
+      "label": "Lost Squadron",
+      "guidance": "Searches for old crocodile-bomber friends scattered after the war → reunion (heartwarming)."
+    },
+    {
+      "id": "engine-failure",
+      "label": "Engine Failure",
+      "guidance": "Mid-flight crisis → makes peace with falling → unexpected rescue (dramatic)."
+    },
+    {
+      "id": "library-of-skies",
+      "label": "Library of Skies",
+      "guidance": "Quiet poet at heart → reads books to clouds → writes a bestseller (wholesome)."
+    },
+    {
+      "id": "tail-gunner-romance",
+      "label": "Tail-Gunner Romance",
+      "guidance": "Falls in love with a passing biplane → forbidden inter-aircraft romance (dramatic)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#bombardirocrocodilo", "#brainrot", "#italianbrainrot", "#aianimation", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#wargrief", "#melancholy", "#poetry"],
+      "hopeful": ["#takeoff", "#hopeful", "#freedom"],
+      "funny": ["#discodad", "#comedy", "#brainrothumor"],
+      "dramatic": ["#dogfight", "#cinematic", "#epicstory"],
+      "heartwarming": ["#reunion", "#wholesome", "#friendship"],
+      "epic": ["#legend", "#hero", "#flightofthegods"]
+    },
+    "archetypeHashtags": {
+      "reluctant-hero": ["#onelastflight", "#hero"],
+      "disco-secret-life": ["#discosecret", "#nightlife"],
+      "lost-squadron": ["#brothersinarms", "#reunion"],
+      "engine-failure": ["#freefall", "#suspense"],
+      "library-of-skies": ["#poet", "#cloudreader"],
+      "tail-gunner-romance": ["#aircraftlove", "#romance"]
+    },
+    "archetypeOpenings": {
+      "reluctant-hero": [
+        "He swore he'd never fly again. The village had other plans. ✈️🐊",
+        "One last sortie before the engines rust forever.",
+        "Retired bomber, unfinished war."
+      ],
+      "disco-secret-life": [
+        "By day: war veteran. By night: dance floor menace. 🪩",
+        "Nobody knows where Bombardiro goes at midnight.",
+        "Propellers + disco lights = a lifestyle."
+      ],
+      "lost-squadron": [
+        "Squadron of seven. He hasn't seen six of them since '45.",
+        "The radio crackled. An old voice. Impossible.",
+        "Family is the planes you flew beside."
+      ],
+      "engine-failure": [
+        "10,000 feet. Both engines dead. One scaly heart still beating.",
+        "When the propellers stop, the poetry starts.",
+        "Falling counts as flying, technically."
+      ],
+      "library-of-skies": [
+        "He reads to the clouds. The clouds, somehow, listen. ☁️📖",
+        "Nobody told the bomber he could write.",
+        "His memoirs are entirely in cumulus."
+      ],
+      "tail-gunner-romance": [
+        "She was a biplane from Tuscany. He was a bomber from Sicily.",
+        "Two aircraft. One impossible flight path. 💔",
+        "Love at first contrail."
+      ]
+    },
+    "closingCtas": [
+      "Follow for more Bombardiro flights ✈️🐊",
+      "Part 2 in the hangar? 👀",
+      "Tag a friend who needs to fly again 🛫",
+      "Like if you'd salute this crocodile",
+      "More brainrot incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#brainrottiktok", "#italianbrainrot"]
+  },
+  "musicStyleHint": "vintage swing brass with disco synths layered underneath; cinematic war-movie strings on dramatic beats"
+}

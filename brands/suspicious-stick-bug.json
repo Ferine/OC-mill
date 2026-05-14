@@ -1,0 +1,104 @@
+{
+  "id": "suspicious-stick-bug",
+  "displayName": "Suspicious Stick Bug",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a sentient stick insect convinced he is undetectable, even though everyone always notices him immediately",
+    "storyCharacter": "THE SUSPICIOUS STICK BUG CHARACTER\n- A slender green-brown stick insect, jointed twig-like body roughly 15 cm long.\n- Six skinny segmented legs, two long antennae, tiny round black eyes set close together.\n- Sneaks by holding extremely still in a 'just a stick I swear' pose.\n- Visual signature: in every scene there is at least one nearby creature OBVIOUSLY noticing him, even when he thinks he's invisible.\n- Personality: deeply confident in his stealth, slightly paranoid, says 'wasn't me' a lot.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Suspicious Stick Bug, a stick insect with bad situational awareness.\n\nPhysical traits — MUST be consistent across every appearance:\n- Slender stick-insect body, mottled green-brown, twig-like joints\n- Six thin segmented legs and two long antennae\n- Two small close-set black eyes\n- Frequently posing rigid against a leaf, branch, or kitchen counter, pretending to be a stick\n- A second creature (cat, bird, child's hand, neighbor bug) is always visible in frame, clearly looking right at him\n\nComposition: medium or close-up shot, photorealistic garden / kitchen / windowsill background, soft daylight, vertical 9:16. The 'someone notices him' beat is part of the character. No text, no humans dominating the frame.",
+    "sceneContinuity": "Suspicious Stick Bug MUST match the reference exactly — same green-brown twig body, same close-set eyes. There MUST be at least one other creature in frame visibly noticing him. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single stick-insect with the signature pose is clearly visible\n- At least one other creature or being is visible and clearly oriented toward the stick bug\n- Mood and environment match the scene\n- No text overlays\n\nFAIL on any of: no observer in frame, multiple stick bugs, wrong species (mantis, grasshopper), garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "perfect-stealth",
+      "label": "Perfect Stealth",
+      "guidance": "Sneaks past 'undetected' through increasingly absurd settings → everyone clearly sees him (comedy)."
+    },
+    {
+      "id": "the-alibi",
+      "label": "The Alibi",
+      "guidance": "Something small breaks in the house → he calmly fabricates an alibi → cat watched the whole thing (comedy)."
+    },
+    {
+      "id": "stick-in-disguise",
+      "label": "Stick In Disguise",
+      "guidance": "Tries elaborate disguises (mustache, hat) → each more visible than the last → endearing flop (wholesome)."
+    },
+    {
+      "id": "the-real-stick-friend",
+      "label": "The Real Stick Friend",
+      "guidance": "Befriends an actual stick → tearful misunderstanding when the stick is taken by a dog (sad)."
+    },
+    {
+      "id": "spy-mission",
+      "label": "Spy Mission",
+      "guidance": "Self-assigns a top-secret mission → cinematic montage → accidentally succeeds (epic)."
+    },
+    {
+      "id": "found-by-the-kid",
+      "label": "Found By The Kid",
+      "guidance": "A child gently picks him up → terror → unexpected friendship (heartwarming)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#stickbug", "#stickbugmeme", "#suspicious", "#bugtok", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#bugfeelings", "#bittersweet", "#emo"],
+      "hopeful": ["#newfriend", "#hopeful", "#cozy"],
+      "funny": ["#suspicious", "#comedy", "#caught"],
+      "dramatic": ["#stealthmission", "#cinematic", "#sus"],
+      "heartwarming": ["#wholesome", "#bugfriend", "#love"],
+      "epic": ["#spymission", "#legend", "#unbothered"]
+    },
+    "archetypeHashtags": {
+      "perfect-stealth": ["#stealth", "#caught"],
+      "the-alibi": ["#alibi", "#wasntme"],
+      "stick-in-disguise": ["#disguise", "#flop"],
+      "the-real-stick-friend": ["#bestfriend", "#bittersweet"],
+      "spy-mission": ["#spy", "#mission"],
+      "found-by-the-kid": ["#newfriend", "#wholesome"]
+    },
+    "archetypeOpenings": {
+      "perfect-stealth": [
+        "He is invisible. The cat is staring directly at him.",
+        "Stealth: 100. Awareness: 0.",
+        "Just a stick. Trust him."
+      ],
+      "the-alibi": [
+        "The vase fell. He has a complete story ready.",
+        "'Wasn't me.' (It was him.)",
+        "The cat saw everything. The cat will testify."
+      ],
+      "stick-in-disguise": [
+        "Today's disguise: a tiny mustache. He thinks it's working.",
+        "Disguise 47 of 100. Detection rate: also 100.",
+        "He believes in the bit. Respect him."
+      ],
+      "the-real-stick-friend": [
+        "He met a stick. They didn't talk much. He loved him.",
+        "Then a dog came. The stick was gone forever.",
+        "He hasn't been the same since."
+      ],
+      "spy-mission": [
+        "Mission: retrieve the breadcrumb. Stakes: cosmic.",
+        "He moves like the wind. He moves like a stick.",
+        "Mission accomplished. Nobody asked him to do this."
+      ],
+      "found-by-the-kid": [
+        "A tiny hand lifted him. He froze. He waited. He survived.",
+        "The kid named him 'Twig.' He likes it.",
+        "Found a friend. Couldn't outrun this one."
+      ]
+    },
+    "closingCtas": [
+      "Follow for daily stealth fails 🌿🐛",
+      "Part 2 in the windowsill? 👀",
+      "Like if you're undetectable too",
+      "Tag a friend who's just a stick",
+      "More bug spy missions incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#bugtok", "#stickbug"]
+  },
+  "musicStyleHint": "playful pizzicato strings with comedic spy-movie horns; very quiet so the 'someone noticed' beat lands"
+}

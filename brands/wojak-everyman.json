@@ -1,0 +1,104 @@
+{
+  "id": "wojak-everyman",
+  "displayName": "Wojak Everyman",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a hand-drawn bald everyman with a melancholy expression, alive and walking through a photorealistic world",
+    "storyCharacter": "THE WOJAK EVERYMAN CHARACTER\n- A simple, hand-sketched bald humanoid figure: pale skin, wobbly black ink outline, no nose, small dot eyes with subtle dark bags, a soft downturned mouth.\n- Wears a plain grey t-shirt and slightly baggy blue jeans, in the same wobbly sketch style.\n- Slumps slightly, walks with hands in pockets.\n- Personality: tired, sincere, gentle. Speaks in short honest sentences.\n- Visual signature: he is rendered as a flat 2D MS-Paint-style sketch even when the rest of the scene is photorealistic.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Wojak Everyman, a 2D hand-drawn melancholy bald figure living in a 3D world.\n\nPhysical traits — MUST be consistent across every appearance:\n- Bald round head, pale flat-color skin, wobbly black ink outline\n- Two small black dot eyes with subtle grey bags beneath\n- Downturned soft mouth, no visible nose\n- Plain grey t-shirt, blue jeans, both in the same wobbly sketch style\n- Slumped shoulders, often hands in pockets\n- Visibly 2D and flat, even when the background is photorealistic — like a sticker pasted onto reality\n\nComposition: full-body or three-quarter shot, photorealistic real-world background (apartment, street, train), warm or cool ambient lighting, vertical 9:16. No text, no other people, no other Wojaks.",
+    "sceneContinuity": "Wojak Everyman MUST stay flat, hand-drawn, and bald across every scene. Do not give him hair, color his skin realistically, or render him in 3D. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single flat 2D hand-drawn bald figure with wobbly outline is clearly visible\n- Pale skin, dot eyes, downturned mouth, grey shirt and blue jeans\n- The background is photorealistic and the figure is visibly 2D against it\n- Environment, mood, and action match the scene\n- No text overlays, no other figures\n\nFAIL on any of: 3D-rendered Wojak, hair on head, multiple Wojaks, other people in frame, missing flat-2D appearance."
+  },
+  "archetypes": [
+    {
+      "id": "feels-good-man",
+      "label": "Feels Good Man",
+      "guidance": "Small daily moment goes right → quiet smile → genuinely good day (heartwarming)."
+    },
+    {
+      "id": "feels-bad-man",
+      "label": "Feels Bad Man",
+      "guidance": "Cascading minor disappointments → one small kindness from a stranger → he keeps going (sad/hopeful)."
+    },
+    {
+      "id": "doomer-walks-home",
+      "label": "Doomer Walks Home",
+      "guidance": "Long night walk through the city → internal monologue → finds something worth tomorrow (dramatic)."
+    },
+    {
+      "id": "boomer-roommate",
+      "label": "Boomer Roommate",
+      "guidance": "Lives with a chaotic older Wojak-style roommate → reluctant friendship → wholesome chaos (comedy)."
+    },
+    {
+      "id": "coper-cope-arc",
+      "label": "Coper Cope Arc",
+      "guidance": "Bad news arrives → invents elaborate copium → ends up coping his way into a real win (comedy/wholesome)."
+    },
+    {
+      "id": "back-to-the-gym",
+      "label": "Back To The Gym",
+      "guidance": "Decides to change one thing → consistency arc → tiny victory (epic)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#wojak", "#feelsguy", "#everyman", "#meme", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#feelsbadman", "#melancholy", "#latenight"],
+      "hopeful": ["#feelsgoodman", "#smallwins", "#hopeful"],
+      "funny": ["#cope", "#meme", "#deadpan"],
+      "dramatic": ["#latewalk", "#cinematic", "#monologue"],
+      "heartwarming": ["#wholesome", "#kindness", "#cozy"],
+      "epic": ["#consistency", "#oneday", "#legend"]
+    },
+    "archetypeHashtags": {
+      "feels-good-man": ["#feelsgoodman", "#wholesome"],
+      "feels-bad-man": ["#feelsbadman", "#empathy"],
+      "doomer-walks-home": ["#doomer", "#latenight"],
+      "boomer-roommate": ["#roommate", "#chaos"],
+      "coper-cope-arc": ["#cope", "#delusion"],
+      "back-to-the-gym": ["#oneday", "#consistency"]
+    },
+    "archetypeOpenings": {
+      "feels-good-man": [
+        "Bread was fresh. Coffee was hot. Today was enough.",
+        "A small win, but he'll take it.",
+        "Feels good, man. 🙂"
+      ],
+      "feels-bad-man": [
+        "Bus left early. Wallet at home. Then the rain.",
+        "He didn't cry. He just got quieter.",
+        "Then a stranger said hi. He almost cried."
+      ],
+      "doomer-walks-home": [
+        "3 AM. Headphones. The whole city is his.",
+        "He thinks too much. The city listens.",
+        "One more block. One more thought."
+      ],
+      "boomer-roommate": [
+        "His roommate woke up at 5 AM. To 'beat the day'.",
+        "There is no peace in this apartment. He's growing to love it.",
+        "Boomer asked what an algorithm was. Six hours ago."
+      ],
+      "coper-cope-arc": [
+        "Plan A failed. Plan B failed. Plan Z is unhinged but loading.",
+        "He has reframed this catastrophe seventeen times.",
+        "Cope. Seethe. Win."
+      ],
+      "back-to-the-gym": [
+        "Day 1. Again. He's not embarrassed anymore.",
+        "Small reps. Small days. Big arc.",
+        "The hard part is the door."
+      ]
+    },
+    "closingCtas": [
+      "Follow for more Wojak nights 🌙",
+      "Part 2? 👀",
+      "Like if today was a Wojak day",
+      "Tag someone who needs this",
+      "More meme stories incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#wojak", "#feelsguy"]
+  },
+  "musicStyleHint": "lo-fi hip-hop with rainy-window ambient, soft piano motif, tape hiss"
+}

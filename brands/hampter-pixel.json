@@ -1,0 +1,104 @@
+{
+  "id": "hampter-pixel",
+  "displayName": "Hampter",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a chunky low-resolution pixel-art hamster holding a tiny knife with malicious but ultimately harmless intent",
+    "storyCharacter": "THE HAMPTER CHARACTER\n- A blocky pixel-art hamster, roughly 32x32 resolution aesthetic, with chunky visible pixels.\n- Golden-brown fur with a pale belly, two small black-pixel eyes, two tiny pink-pixel ears.\n- Always clutches a small grey pixel-art kitchen knife in one paw.\n- Personality: gremlin-coded mischief, secretly devoted friend, communicates entirely in 'hampter' typos and squeaks.\n- Visual signature: lives as low-resolution pixel art even when the rest of the world is photorealistic — like a sprite pasted into reality.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Hampter, a low-res pixel-art hamster in a high-res world.\n\nPhysical traits — MUST be consistent across every appearance:\n- Chunky pixel-art hamster, golden-brown fur with pale belly\n- Two black-pixel eyes, two pink-pixel inner ears, small pink-pixel nose\n- Holding a small grey pixel-art kitchen knife in one front paw\n- Visibly low-resolution (chunky pixels) even when the background is photorealistic\n\nComposition: full-body shot, photorealistic real-world background (kitchen counter, sock drawer, windowsill), warm domestic lighting, vertical 9:16. The hamster reads as a sprite pasted into the scene. No text, no humans, no other pixel characters.",
+    "sceneContinuity": "Hampter MUST remain low-res pixel art across every scene, always holding the tiny knife. Do not render him in smooth 3D, do not lose the knife. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single chunky pixel-art hamster is clearly visible\n- Golden-brown fur with pale belly, pixel knife in paw\n- Background is photorealistic and the hamster is visibly pixelated against it\n- Mood and environment match the scene\n- No text, no other characters\n\nFAIL on any of: smooth/3D hamster, missing knife, multiple hamsters, real human in frame, background also pixelated."
+  },
+  "archetypes": [
+    {
+      "id": "tiny-knife-big-feelings",
+      "label": "Tiny Knife Big Feelings",
+      "guidance": "Hampter is mad about something dumb → escalates dramatically → ends with a hug (comedy)."
+    },
+    {
+      "id": "midnight-kitchen-raid",
+      "label": "Midnight Kitchen Raid",
+      "guidance": "Plans an elaborate heist for one (1) sunflower seed → success against all odds (heroic-comedy)."
+    },
+    {
+      "id": "best-roommate",
+      "label": "Best Roommate",
+      "guidance": "Owner has a bad day → Hampter performs a strange small ritual → owner feels better (heartwarming)."
+    },
+    {
+      "id": "the-betrayal",
+      "label": "The Betrayal",
+      "guidance": "His favorite blanket is washed → existential crisis → forgives the world (dramatic)."
+    },
+    {
+      "id": "gym-arc-but-hamster",
+      "label": "Gym Arc But Hamster",
+      "guidance": "Trains on his wheel for one goal: out-bench the cat → emotional finale (epic)."
+    },
+    {
+      "id": "tiny-funeral",
+      "label": "Tiny Funeral",
+      "guidance": "Holds a tiny funeral for a fallen cracker crumb → solemn ceremony → moves on (sad/hopeful)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#hampter", "#pixelart", "#hampster", "#meme", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#tinytears", "#wholesome", "#melancholy"],
+      "hopeful": ["#smallwins", "#tinyhero", "#hopeful"],
+      "funny": ["#gremlin", "#chaoticgood", "#comedy"],
+      "dramatic": ["#hampterarc", "#cinematic", "#plot"],
+      "heartwarming": ["#cozy", "#wholesome", "#bestfriend"],
+      "epic": ["#tinylegend", "#hero", "#mythic"]
+    },
+    "archetypeHashtags": {
+      "tiny-knife-big-feelings": ["#tinyknife", "#unhinged"],
+      "midnight-kitchen-raid": ["#heist", "#sneaky"],
+      "best-roommate": ["#wholesome", "#ritual"],
+      "the-betrayal": ["#blanketgate", "#dramatic"],
+      "gym-arc-but-hamster": ["#gymarc", "#wheelife"],
+      "tiny-funeral": ["#tinyfuneral", "#bittersweet"]
+    },
+    "archetypeOpenings": {
+      "tiny-knife-big-feelings": [
+        "He has a knife. He has feelings. Pray for the curtain rod.",
+        "Hampter is upset. Hampter is brief.",
+        "32 pixels of pure rage."
+      ],
+      "midnight-kitchen-raid": [
+        "01:47 AM. The mission begins.",
+        "Target: one sunflower seed. Risk: everything.",
+        "Stealth mode: pixelated."
+      ],
+      "best-roommate": [
+        "Bad day energy → Hampter ritual incoming 🕯️",
+        "He doesn't know what's wrong. He brings the knife anyway.",
+        "Small comfort. Small friend. Big love."
+      ],
+      "the-betrayal": [
+        "The blanket smelled different. He has questions.",
+        "Hampter is processing.",
+        "Why would you wash it. Why."
+      ],
+      "gym-arc-but-hamster": [
+        "Goal: out-lift the cat. Timeline: undefined.",
+        "Day 47 on the wheel. Day 1 of believing.",
+        "He whispers 'one more rep' in hampter."
+      ],
+      "tiny-funeral": [
+        "A crumb fell today. He noticed.",
+        "Tiny ceremony. Tiny grief. Tiny progress.",
+        "He held the knife in respect, for once."
+      ]
+    },
+    "closingCtas": [
+      "Follow for daily Hampter chaos 🐹🔪",
+      "Part 2 in the kitchen? 👀",
+      "Like if you'd protect him",
+      "Tag your Hampter friend",
+      "More pixel mischief incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#hampter", "#pixeltok"]
+  },
+  "musicStyleHint": "chiptune 8-bit melody with playful kazoo-like leads; dramatic chiptune strings on serious beats"
+}

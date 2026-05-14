@@ -1,0 +1,104 @@
+{
+  "id": "lirili-larila",
+  "displayName": "Lirilì Larilà",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "an elephant with a cactus-segment body that wears leather sandals and carries a pocket-watch",
+    "storyCharacter": "THE LIRILÌ LARILÀ CHARACTER\n- A small grey elephant whose torso is replaced by stacked green prickly-pear cactus segments.\n- Tiny tusks, big round ears, gentle dark eyes with long lashes.\n- Brown leather strap-sandals on four cactus-stub feet.\n- Carries an antique brass pocket-watch on a chain around its neck.\n- Personality: slow, kind, philosophical, always early for everything except its own funeral.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Lirilì Larilà, an elephant-cactus hybrid.\n\nPhysical traits — MUST be consistent across every appearance:\n- Grey elephant head with small tusks, round flopping ears, gentle dark eyes\n- Trunk hanging in a relaxed S-curve\n- Body made of three stacked prickly-pear cactus pads, with visible spines and small yellow flowers\n- Four stubby cactus feet wearing simple brown leather strap sandals\n- Brass antique pocket-watch on a thin chain around the neck\n\nComposition: full-body neutral studio shot, soft sandy-beige background, warm Mediterranean lighting, photorealistic with a children's-book softness, vertical 9:16 framing. No text, no logos, no humans, no other creatures.",
+    "sceneContinuity": "Lirilì Larilà MUST match the reference image exactly — same cactus-segment torso, same sandals, same pocket-watch. Do not turn it back into a normal elephant. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single elephant head with a stacked-cactus body is clearly visible\n- Cactus spines and at least one small yellow flower are present\n- Leather sandals on the feet\n- A pocket-watch visible around the neck or held in trunk\n- Environment, mood, and action match the scene\n- No text overlays, captions, watermarks, or extra characters\n\nFAIL on any of: missing cactus body, normal elephant, missing sandals, missing watch, wrong colors, garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "last-train-home",
+      "label": "Last Train Home",
+      "guidance": "Always early for trains → one day arrives late → discovers a better path home (wholesome)."
+    },
+    {
+      "id": "desert-pilgrimage",
+      "label": "Desert Pilgrimage",
+      "guidance": "Walks across the desert to deliver a single letter → meets strange travelers (epic)."
+    },
+    {
+      "id": "the-time-debt",
+      "label": "The Time Debt",
+      "guidance": "Discovers the pocket-watch is borrowing minutes from his life → must repay them (dramatic)."
+    },
+    {
+      "id": "garden-of-lost-time",
+      "label": "Garden of Lost Time",
+      "guidance": "Finds a garden where the cactus segments of his body bloom into memories (heartwarming)."
+    },
+    {
+      "id": "tiny-philosopher",
+      "label": "Tiny Philosopher",
+      "guidance": "Gives unsolicited but oddly perfect advice to passersby (comedy)."
+    },
+    {
+      "id": "sandal-strike",
+      "label": "Sandal Strike",
+      "guidance": "His left sandal goes on strike for better working conditions (absurd comedy)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#liriliararila", "#brainrot", "#italianbrainrot", "#aianimation", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#timepasses", "#melancholy", "#bittersweet"],
+      "hopeful": ["#newpath", "#hopeful", "#wander"],
+      "funny": ["#absurdcomedy", "#brainrothumor", "#weirdcore"],
+      "dramatic": ["#timedebt", "#cinematic", "#fable"],
+      "heartwarming": ["#wholesome", "#cozy", "#memories"],
+      "epic": ["#pilgrimage", "#legend", "#journey"]
+    },
+    "archetypeHashtags": {
+      "last-train-home": ["#missedthetrain", "#newpath"],
+      "desert-pilgrimage": ["#desertstory", "#pilgrim"],
+      "the-time-debt": ["#timedebt", "#suspense"],
+      "garden-of-lost-time": ["#memorybloom", "#wholesome"],
+      "tiny-philosopher": ["#sageadvice", "#comedy"],
+      "sandal-strike": ["#sandalstrike", "#absurd"]
+    },
+    "archetypeOpenings": {
+      "last-train-home": [
+        "He was always early. Until the day he wasn't. 🐘🌵",
+        "The 5:14 left without him. Good.",
+        "Sometimes missing the train is the whole point."
+      ],
+      "desert-pilgrimage": [
+        "One letter. One thousand kilometers. One cactus elephant.",
+        "He walks because his sandals refuse to run.",
+        "Mail delivery, but make it epic."
+      ],
+      "the-time-debt": [
+        "The pocket-watch was never a gift. It was a loan.",
+        "Tick. Tock. Tick. Tock. ⏳",
+        "Every minute he kept, the watch took back twice."
+      ],
+      "garden-of-lost-time": [
+        "Every spine on him was a memory. Today they bloomed.",
+        "The garden remembers what we forgot.",
+        "A flower for every year. He counted them all."
+      ],
+      "tiny-philosopher": [
+        "Asked a question. Got hit with a fable. 🐘",
+        "He doesn't answer. He reframes.",
+        "Therapy, but with sandals."
+      ],
+      "sandal-strike": [
+        "The left sandal demanded a 4-day week.",
+        "Negotiations broke down at noon.",
+        "A barefoot revolution begins."
+      ]
+    },
+    "closingCtas": [
+      "Follow Lirilì on his walk 🐘🌵",
+      "Part 2 down the road? 👀",
+      "Tag a friend who's always early",
+      "Like if his pocket-watch ticked for you ⏳",
+      "More brainrot fables incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#brainrottiktok", "#italianbrainrot"]
+  },
+  "musicStyleHint": "soft Mediterranean acoustic guitar, melancholic mandolin, occasional pocket-watch ticking as percussion"
+}

@@ -1,0 +1,104 @@
+{
+  "id": "doge-shiba",
+  "displayName": "Doge",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a wide-eyed Shiba Inu whose every thought hovers around him in floating Comic Sans",
+    "storyCharacter": "THE DOGE CHARACTER\n- A plump, fluffy Shiba Inu with a cream-and-tan coat, white muzzle and chest, curly tail.\n- Slightly side-eye gaze, raised eyebrows, mouth permanently in a faint smug-confused smile.\n- Always sitting or standing in a slightly awkward, frame-centered pose like a found photo.\n- Personality: earnest, easily impressed, narrates life in broken phrases. Wow. Such drama. Very chonk.\n- Visual signature: small floating Comic Sans-style text fragments hover near him in pastel colors (these are part of the character, not subtitles).\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Doge, a Shiba Inu meme character.\n\nPhysical traits — MUST be consistent across every appearance:\n- Plump Shiba Inu, cream-and-tan body, white chest and muzzle\n- Slight side-eye, raised inner eyebrows, faint closed-mouth smile\n- Curled tail over the back\n- Three or four small floating pastel Comic Sans-style words near the head (e.g. 'wow', 'such', 'very')\n\nComposition: full-body or three-quarter shot, plain off-white background, flat even lighting like a phone photo, photorealistic-but-slightly-overexposed, vertical 9:16. The floating words are part of the visual identity. No long sentences, no logos, no humans, no other dogs.",
+    "sceneContinuity": "Doge MUST match the reference image exactly — same Shiba Inu, same side-eye, same floating pastel word-fragments somewhere in frame. Maintain perfect character continuity. Do not swap to another dog breed.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single Shiba Inu is clearly visible with the signature side-eye expression\n- Cream-and-tan coat with white chest\n- At least one floating pastel word-fragment in Comic Sans style is in frame\n- Environment matches the scene\n- No long captions, no other dogs, no humans dominating the frame\n\nFAIL on any of: wrong breed, missing floating words, multiple dogs, sentence-length captions, garbled face."
+  },
+  "archetypes": [
+    {
+      "id": "much-investor",
+      "label": "Much Investor",
+      "guidance": "Doge yolos his last biscuit into a meme stock → emotional rollercoaster → unexpected outcome (comedy)."
+    },
+    {
+      "id": "wow-vacation",
+      "label": "Wow Vacation",
+      "guidance": "Books a wholesome solo vacation → minor disasters → genuine joy (heartwarming)."
+    },
+    {
+      "id": "such-confession",
+      "label": "Such Confession",
+      "guidance": "Tries to confess a feeling using only three-word phrases → adorable misfire (wholesome)."
+    },
+    {
+      "id": "very-detective",
+      "label": "Very Detective",
+      "guidance": "Investigates who ate the last treat → comically incompetent noir (comedy)."
+    },
+    {
+      "id": "mood-spiral",
+      "label": "Mood Spiral",
+      "guidance": "Tries to fight off a bad day → small kindness saves him (sad/hopeful)."
+    },
+    {
+      "id": "comeback-tour",
+      "label": "Comeback Tour",
+      "guidance": "Faded internet star → unexpectedly relevant again → grateful tears (dramatic)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#doge", "#shibainu", "#dogememe", "#muchwow", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#suchsad", "#muchcry", "#wholesomesad"],
+      "hopeful": ["#suchhope", "#newchapter", "#wow"],
+      "funny": ["#dogememe", "#muchfunny", "#comedy"],
+      "dramatic": ["#suchdrama", "#cinematic", "#plot"],
+      "heartwarming": ["#wholesome", "#muchlove", "#cozy"],
+      "epic": ["#muchlegend", "#hero", "#suchepic"]
+    },
+    "archetypeHashtags": {
+      "much-investor": ["#stonks", "#dogecoin", "#yolo"],
+      "wow-vacation": ["#solotrip", "#wholesomedoge"],
+      "such-confession": ["#confession", "#smol"],
+      "very-detective": ["#noir", "#mystery"],
+      "mood-spiral": ["#mentalhealth", "#smallwins"],
+      "comeback-tour": ["#comeback", "#legend"]
+    },
+    "archetypeOpenings": {
+      "much-investor": [
+        "Such confidence. Many losses. Wow.",
+        "Doge sees green candle. Doge sees red candle. Doge is candle.",
+        "Portfolio: one treat, three vibes."
+      ],
+      "wow-vacation": [
+        "Doge books one (1) vacation. Chaos ensues.",
+        "Such itinerary. Many wrong turns. Best week ever.",
+        "Wow scenery. Wow sunburn. Wow joy."
+      ],
+      "such-confession": [
+        "Doge has feelings. Doge has three words.",
+        "Confession in Comic Sans incoming 💛",
+        "Such heart. Many trembles."
+      ],
+      "very-detective": [
+        "A treat is missing. A doge has questions.",
+        "Suspect: everyone. Evidence: vibes.",
+        "Very investigator. Such clueless."
+      ],
+      "mood-spiral": [
+        "Bad day, but make it pastel.",
+        "Doge is not okay. Doge will be okay.",
+        "One small good thing is enough today."
+      ],
+      "comeback-tour": [
+        "They said his time was over. The algorithm disagreed.",
+        "From 2014 meme to 2026 legend.",
+        "Doge is back. Wow."
+      ]
+    },
+    "closingCtas": [
+      "Follow for much doge 🐕",
+      "Such part 2? 👀",
+      "Like for wow energy",
+      "Tag a very friend 💛",
+      "More memes incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#shibatok", "#dogememe"]
+  },
+  "musicStyleHint": "lo-fi bedroom hip-hop with twinkling music-box samples and a single Comic-Sans-ish synth motif"
+}

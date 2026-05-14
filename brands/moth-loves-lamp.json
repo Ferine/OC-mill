@@ -1,0 +1,104 @@
+{
+  "id": "moth-loves-lamp",
+  "displayName": "Moth Loves Lamp",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "an oversized fuzzy moth utterly devoted to a single glowing porch lamp",
+    "storyCharacter": "THE MOTH CHARACTER\n- A large fluffy brown moth with feathery antennae and soft cream-and-brown patterned wings.\n- Big shiny black compound eyes, tiny stubby legs, oversized body slightly chonky.\n- Always within sight of a single warm-yellow porch lamp — his beloved.\n- Personality: obsessive but pure, sincere, terrible at restraint, has the emotional vocabulary of a romance poet.\n- Visual signature: dust trails follow his wing-flaps, and the lamp emits a slightly heart-shaped glow whenever he gets close.\n- The same physical character must appear consistently across every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: Moth Loves Lamp, an oversized fuzzy moth obsessed with a porch lamp.\n\nPhysical traits — MUST be consistent across every appearance:\n- Big fuzzy brown moth, cream-and-brown patterned wings with eye-spot markings\n- Feathery antennae, large reflective black compound eyes\n- Stubby legs, slightly chubby body, faint dust shedding off the wings\n- A single warm-yellow porch lamp (incandescent style, slightly weathered) in the same scene or visible just off-frame, with a soft heart-shaped glow halo when the moth is near\n\nComposition: medium or full-body shot, warm porch / streetlamp lighting, soft summer-night atmosphere, vertical 9:16. The lamp is a co-star. No text, no humans, no other moths.",
+    "sceneContinuity": "The Moth MUST match the reference image exactly — same wing pattern, same antennae, same chubby fuzzy body. The Lamp MUST also be the same lamp across scenes. Maintain perfect character continuity.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A single fuzzy moth with cream-and-brown wings is clearly visible\n- A warm-yellow porch lamp is visible in the scene or implied just off-frame by its glow\n- Soft heart-shaped halo or warm glow when the moth is close to the lamp\n- Mood and environment match\n- No text, no humans, no other moths\n\nFAIL on any of: missing moth, missing lamp/glow, multiple moths, wrong color palette, garbled wings."
+  },
+  "archetypes": [
+    {
+      "id": "first-date-with-lamp",
+      "label": "First Date With Lamp",
+      "guidance": "Plans an elaborate first date for the lamp who cannot move → endearing chaos (wholesome)."
+    },
+    {
+      "id": "the-power-outage",
+      "label": "The Power Outage",
+      "guidance": "The lamp goes dark for a night → moth's existential crisis → lamp returns (sad/hopeful)."
+    },
+    {
+      "id": "rival-bug-zapper",
+      "label": "Rival Bug Zapper",
+      "guidance": "A flashy blue bug-zapper moves in nearby → moth must resist temptation → stays loyal (dramatic)."
+    },
+    {
+      "id": "long-distance-relationship",
+      "label": "Long Distance Relationship",
+      "guidance": "Wind blows him three porches away → epic journey back to the lamp (epic)."
+    },
+    {
+      "id": "writes-the-lamp-a-song",
+      "label": "Writes The Lamp A Song",
+      "guidance": "Composes a buzzy little song on a leaf-guitar → performs for the lamp (heartwarming)."
+    },
+    {
+      "id": "the-replacement-bulb",
+      "label": "The Replacement Bulb",
+      "guidance": "A human replaces the bulb → moth grieves the old light → learns to love the new one too (bittersweet)."
+    }
+  ],
+  "caption": {
+    "coreHashtags": ["#mothlovelamp", "#mothmeme", "#cottagecore", "#wholesome", "#aivideo"],
+    "moodHashtags": {
+      "sad": ["#mothgrief", "#bittersweet", "#poweroutage"],
+      "hopeful": ["#lightreturns", "#hopeful", "#cozy"],
+      "funny": ["#mothmeme", "#comedy", "#cringe"],
+      "dramatic": ["#zapperdrama", "#cinematic", "#romance"],
+      "heartwarming": ["#wholesome", "#firstdate", "#love"],
+      "epic": ["#longjourney", "#legend", "#devotion"]
+    },
+    "archetypeHashtags": {
+      "first-date-with-lamp": ["#firstdate", "#wholesome"],
+      "the-power-outage": ["#poweroutage", "#bittersweet"],
+      "rival-bug-zapper": ["#loyalty", "#romance"],
+      "long-distance-relationship": ["#longdistance", "#odyssey"],
+      "writes-the-lamp-a-song": ["#serenade", "#cozy"],
+      "the-replacement-bulb": ["#newbulb", "#grief"]
+    },
+    "archetypeOpenings": {
+      "first-date-with-lamp": [
+        "He brought flowers. The lamp can't see flowers. He's trying anyway.",
+        "Date night. One participant. One light source. Full commitment.",
+        "Romance, but the other person is a porchlamp."
+      ],
+      "the-power-outage": [
+        "10:47 PM. The lamp goes out. He doesn't know what to do.",
+        "He sat under the dark bulb all night. Faithfully.",
+        "Then, at dawn, it flickered. He wept moth-tears."
+      ],
+      "rival-bug-zapper": [
+        "Blue light. Loud crackle. Cheap thrills. He refuses.",
+        "The zapper is exciting. The lamp is home.",
+        "He chose the warm light. He always will."
+      ],
+      "long-distance-relationship": [
+        "The storm blew him three porches away. The journey home begins.",
+        "Three driveways. Two cats. One destination.",
+        "He whispers 'lamp' the whole way."
+      ],
+      "writes-the-lamp-a-song": [
+        "He learned guitar. On a leaf. For her.",
+        "The song has four notes. He's proud of every one.",
+        "🎶 'lamp / oh lamp / so warm / lamp' 🎶"
+      ],
+      "the-replacement-bulb": [
+        "The bulb burned out. A human replaced it. He didn't sleep.",
+        "The new light is colder. Brighter. Not her.",
+        "Day by day, he learns to love it too. Slowly."
+      ]
+    },
+    "closingCtas": [
+      "Follow for nightly moth devotion 🪔🦋",
+      "Part 2 on the porch? 👀",
+      "Like if you've loved a lamp",
+      "Tag a devoted friend",
+      "More cottagecore moth stories incoming"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#cottagecore", "#mothtok"]
+  },
+  "musicStyleHint": "soft acoustic fingerpicking with porch-light cricket ambience and a warm tube-amp hum"
+}
