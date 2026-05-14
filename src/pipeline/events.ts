@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { Story } from '../story/types';
 
 /**
- * Structured pipeline events emitted by OrangeCatAgent and the per-scene
+ * Structured pipeline events emitted by StoryAgent and the per-scene
  * services. The HTTP server multiplexes these to SSE clients per run so
  * the UI can show live progress without polling.
  *

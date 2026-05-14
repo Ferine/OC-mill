@@ -7,6 +7,8 @@ import { TikTokClient } from '../clients/TikTokClient';
 import { OpenRouterImageClient } from '../clients/OpenRouterImageClient';
 import { OpenRouterVideoClient } from '../clients/OpenRouterVideoClient';
 import { OpenRouterTTSClient } from '../clients/OpenRouterTTSClient';
+import { OpenRouterMusicClient } from '../clients/OpenRouterMusicClient';
+import { BrandRegistry } from '../brand/BrandRegistry';
 import { CharacterReferenceCache } from '../services/CharacterReferenceCache';
 import { VideoValidator } from '../services/VideoValidator';
 import { ImageService, SceneKeyframeResult } from '../media/ImageService';
@@ -15,6 +17,7 @@ import {
   NarrationService,
   SceneNarrationResult,
 } from '../media/NarrationService';
+import { MusicService } from '../media/MusicService';
 import { Compositor } from '../media/Compositor';
 import { StatisticsTracker } from '../services/StatisticsTracker';
 import { APIRateLimiters } from '../utils/RateLimiter';
@@ -23,12 +26,19 @@ import { atomicWrite, isCachedFile, readJson } from '../utils/io';
 import { logger } from '../utils/logger';
 import { PipelineEventBus } from '../pipeline/events';
 import { Story } from '../story/types';
+import { Brand } from '../brand/types';
 
 export interface RunOnceOptions {
   /** Resume a previously-started run from this directory. */
   resumeFromRunDir?: string;
   /** Optional event bus for streaming progress to the HTTP server / UI. */
   events?: PipelineEventBus;
+  /** Brand id for a fresh run. Required unless resuming. */
+  brandId?: string;
+  /** Optional archetype slug; randomly chosen from the brand if absent. */
+  archetypeId?: string;
+  /** Optional free-text creative seed injected into the LLM story prompt. */
+  seed?: string;
 }
 
 export interface AgentRunResult {
@@ -47,26 +57,13 @@ export interface AgentRunResult {
 }
 
 /**
- * OrangeCatAgent — orchestrates the per-scene generation pipeline.
- *
- * Pipeline (target end-state):
- *   Story (LLM)
- *     └─► Character reference image                      [Phase 2]
- *     └─► For each scene (parallel, p-limited):
- *           1. Keyframe image (text+ref → image)         [Phase 2]
- *           2. Video clip   (image-to-video, OpenRouter) [Phase 3]
- *           3. TTS narration (OpenRouter TTS)            [Phase 4]
- *           4. VLM eval gate (1 retry)                   [Phase 5]
- *     └─► Compositor (ffmpeg concat + audio mix + ASS)   [Phase 4]
- *     └─► TikTok upload                                  [implemented]
- *     └─► Statistics                                     [implemented]
- *
- * Currently implemented stages: story generation, caption generation,
- * statistics, TikTok upload (preserved). Video / image / narration /
- * eval / compositing are stubbed and throw NotImplementedError until
- * the corresponding phase lands.
+ * StoryAgent — orchestrates the per-scene generation pipeline for any
+ * registered brand. The brand is a per-run choice (loaded from the
+ * BrandRegistry at the top of `runOnce`) and threaded through every
+ * service call as an explicit argument — no service holds a brand
+ * reference across runs.
  */
-export class OrangeCatAgent {
+export class StoryAgent {
   private storyService: StoryService;
   private imageClient: OpenRouterImageClient;
   private videoClient: OpenRouterVideoClient;
@@ -75,16 +72,19 @@ export class OrangeCatAgent {
   private imageService: ImageService;
   private videoClipService: VideoClipService;
   private narrationService: NarrationService;
+  private musicService: MusicService;
   private compositor: Compositor;
   private videoValidator: VideoValidator;
   private captionGenerator: CaptionGenerator;
   private tiktokClient: TikTokClient;
   private statisticsTracker: StatisticsTracker;
   private rateLimiters: APIRateLimiters;
+  private brandRegistry: BrandRegistry;
   private config: Config;
 
   constructor(config: Config) {
     this.config = config;
+    this.brandRegistry = new BrandRegistry(config.pipeline.brandsDir);
 
     this.storyService = new StoryService(config.openrouter, {
       targetDurationSeconds: config.pipeline.videoDurationSeconds,
@@ -125,6 +125,10 @@ export class OrangeCatAgent {
       config.tts.voicesByMood,
       config.tts.format
     );
+    this.musicService = new MusicService(
+      new OpenRouterMusicClient(config.openrouter),
+      config.openrouter.musicModel
+    );
     this.compositor = new Compositor();
     this.videoValidator = new VideoValidator(
       config.pipeline.videoDurationSeconds
@@ -137,7 +141,7 @@ export class OrangeCatAgent {
     this.statisticsTracker = new StatisticsTracker();
     this.rateLimiters = new APIRateLimiters();
 
-    logger.info('OrangeCatAgent initialized', {
+    logger.info('StoryAgent initialized', {
       llmModel: config.openrouter.llmModel,
       imageModel: config.openrouter.imageModel,
       videoModel: config.openrouter.videoModel,
@@ -148,7 +152,28 @@ export class OrangeCatAgent {
 
   public async initialize(): Promise<void> {
     await this.statisticsTracker.initialize();
-    logger.info('OrangeCatAgent fully initialized');
+    await this.brandRegistry.initialize();
+    logger.info('StoryAgent fully initialized');
+  }
+
+  public getBrandRegistry(): BrandRegistry {
+    return this.brandRegistry;
+  }
+
+  /**
+   * One-shot LLM call to produce a creative seed for a brand+archetype.
+   * Used by the UI's "✨ Surprise me" button on the new-run form.
+   */
+  public async suggestSeed(opts: {
+    brandId: string;
+    archetypeId?: string;
+  }): Promise<string> {
+    const brand = this.brandRegistry.get(opts.brandId);
+    if (!brand) throw new Error(`Unknown brand "${opts.brandId}"`);
+    return this.storyService.suggestSeed({
+      brand,
+      archetypeId: opts.archetypeId,
+    });
   }
 
   public async runOnce(opts: RunOnceOptions = {}): Promise<AgentRunResult> {
@@ -168,6 +193,7 @@ export class OrangeCatAgent {
     const storyPath = join(runDir, 'story.json');
     const events = opts.events;
 
+    let brand: Brand | undefined;
     let story: Story | undefined;
     let keyframes: SceneKeyframeResult[] | undefined;
     let clips: SceneClipResult[] | undefined;
@@ -176,7 +202,7 @@ export class OrangeCatAgent {
     let videoSizeBytes: number | undefined;
 
     try {
-      logger.info(resuming ? '↻ Resuming OrangeCatAgent run' : '🚀 Starting OrangeCatAgent run', {
+      logger.info(resuming ? '↻ Resuming StoryAgent run' : '🚀 Starting StoryAgent run', {
         runDir,
         resuming,
       });
@@ -193,21 +219,49 @@ export class OrangeCatAgent {
           throw new Error(
             `Cannot resume ${runDir}: story.json is missing. ` +
               `This run was likely created by an older build. ` +
-              `Start a fresh run instead (npm start), or delete the runDir to discard it.`
+              `Start a fresh run instead, or delete the runDir to discard it.`
           );
         }
         story = await readJson<Story>(storyPath);
+        if (!story.brandId) {
+          throw new Error(
+            `Cannot resume ${runDir}: story.json predates the brand pivot ` +
+              `(missing brandId). Start a fresh run.`
+          );
+        }
+        brand = this.brandRegistry.get(story.brandId);
+        if (!brand) {
+          throw new Error(
+            `Cannot resume ${runDir}: brand "${story.brandId}" is no longer ` +
+              `registered. Restore the brand JSON under brands/ or start a fresh run.`
+          );
+        }
         logger.info('Story loaded from cache', {
-          archetype: story.archetype,
+          brandId: story.brandId,
+          archetypeId: story.archetypeId,
           title: story.title,
           scenes: story.scenes.length,
         });
         events?.publish({ type: 'story.ready', story, fromCache: true });
       } else {
+        const brandId = opts.brandId ?? this.config.pipeline.defaultBrandId;
+        brand = this.brandRegistry.get(brandId);
+        if (!brand) {
+          throw new Error(
+            `Unknown brand "${brandId}". Available brands: ${this.brandRegistry
+              .list()
+              .map((b) => b.id)
+              .join(', ') || '(none)'}`
+          );
+        }
         await this.rateLimiters.openrouterLLM.consume('story-generation');
-        story = await this.storyService.generateStory();
+        story = await this.storyService.generateStory({
+          brand,
+          archetypeId: opts.archetypeId,
+          seed: opts.seed,
+        });
         await atomicWrite(storyPath, JSON.stringify(story, null, 2));
-        logger.info('Story persisted', { storyPath });
+        logger.info('Story persisted', { storyPath, brandId: brand.id });
         events?.publish({ type: 'story.ready', story });
       }
 
@@ -219,6 +273,7 @@ export class OrangeCatAgent {
       events?.publish({ type: 'stage.start', stage: 'keyframes' });
       const keyframeDir = join(runDir, 'keyframes');
       keyframes = await this.imageService.generateAllKeyframes({
+        brand,
         story,
         outputDir: keyframeDir,
         concurrency: this.config.pipeline.sceneConcurrency,
@@ -231,6 +286,7 @@ export class OrangeCatAgent {
       events?.publish({ type: 'stage.start', stage: 'clips' });
       const clipDir = join(runDir, 'clips');
       clips = await this.videoClipService.generateAllClips({
+        brand,
         story,
         keyframes,
         outputDir: clipDir,
@@ -239,16 +295,39 @@ export class OrangeCatAgent {
       });
       events?.publish({ type: 'stage.done', stage: 'clips' });
 
-      // Step 4: TTS narration per scene (OpenRouter TTS, per-mood voices)
-      logger.info('🗣️  Step 4/7: Generating narration');
+      // Step 4: Narration + music in parallel.
+      // Narration is per-scene (~10-30s total); music is one ~30-60s
+      // generation that often takes longer. Running them concurrently hides
+      // the music latency. Music failure is non-fatal — the run continues
+      // with narration only.
+      logger.info('🗣️  Step 4/7: Generating narration + music');
       events?.publish({ type: 'stage.start', stage: 'narration' });
       const narrationDir = join(runDir, 'narration');
-      narrations = await this.narrationService.generateAll({
+      const musicDir = join(runDir, 'music');
+
+      const narrationPromise = this.narrationService.generateAll({
         story,
         outputDir: narrationDir,
         concurrency: this.config.pipeline.sceneConcurrency,
         events,
       });
+
+      const musicPromise = this.config.music.enabled
+        ? this.musicService
+            .generate({ story, outputDir: musicDir })
+            .catch((err) => {
+              logger.warn('Music generation failed — continuing without it', {
+                error: err instanceof Error ? err.message : String(err),
+              });
+              return undefined;
+            })
+        : Promise.resolve(undefined);
+
+      const [narrationResult, musicResult] = await Promise.all([
+        narrationPromise,
+        musicPromise,
+      ]);
+      narrations = narrationResult;
       events?.publish({ type: 'stage.done', stage: 'narration' });
 
       // Step 5: Compose final video (ffmpeg) — skip if already on disk.
@@ -270,6 +349,14 @@ export class OrangeCatAgent {
           narrations,
           outputDir: composeDir,
           outputPath: finalPath,
+          music: musicResult
+            ? {
+                path: musicResult.path,
+                volumeDb: this.config.music.volumeDb,
+                fadeInSeconds: this.config.music.fadeInSeconds,
+                fadeOutSeconds: this.config.music.fadeOutSeconds,
+              }
+            : undefined,
         });
         videoPath = composeResult.path;
       }
@@ -289,7 +376,7 @@ export class OrangeCatAgent {
       // Step 7: Upload to TikTok
       logger.info('📤 Step 7/7: Uploading to TikTok');
       events?.publish({ type: 'stage.start', stage: 'upload' });
-      const caption = this.captionGenerator.generateCaption(story);
+      const caption = this.captionGenerator.generateCaption(brand, story);
       await this.rateLimiters.tiktok.consume('video-upload');
       const tiktokResult = await this.tiktokClient.uploadVideo({
         filePath: videoPath,
@@ -308,7 +395,7 @@ export class OrangeCatAgent {
       await this.statisticsTracker.recordRun({
         timestamp: new Date().toISOString(),
         success: true,
-        archetype: story.archetype,
+        archetype: story.archetypeId,
         storyGenerationMethod: this.config.openrouter.llmModel,
         duration,
         tiktokPostId: tiktokResult.postId,
@@ -344,7 +431,7 @@ export class OrangeCatAgent {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
 
-      logger.error('❌ OrangeCatAgent run failed', {
+      logger.error('❌ StoryAgent run failed', {
         error: errorMessage,
         durationMs: duration,
       });
@@ -353,7 +440,7 @@ export class OrangeCatAgent {
         await this.statisticsTracker.recordRun({
           timestamp: new Date().toISOString(),
           success: false,
-          archetype: story.archetype,
+          archetype: story.archetypeId,
           storyGenerationMethod: this.config.openrouter.llmModel,
           duration,
           error: errorMessage,
@@ -361,9 +448,7 @@ export class OrangeCatAgent {
         });
       }
 
-      logger.error(
-        `Run failed. Resume with: npm start -- --resume ${runDir}`
-      );
+      logger.error(`Run failed. Resume with: pnpm start --resume ${runDir}`);
       events?.publish({ type: 'run.failure', error: errorMessage });
 
       return {
@@ -371,7 +456,8 @@ export class OrangeCatAgent {
         story:
           story ??
           ({
-            archetype: 'RagsToRiches',
+            brandId: brand?.id ?? 'unknown',
+            archetypeId: 'unknown',
             title: '(no story generated)',
             narrative: '',
             totalDurationSeconds: 0,
@@ -457,15 +543,23 @@ export class OrangeCatAgent {
         `sceneIndex ${opts.sceneIndex} out of range (story has ${opts.story.scenes.length} scenes)`
       );
     }
+    const brand = this.brandRegistry.get(opts.story.brandId);
+    if (!brand) {
+      throw new Error(
+        `Cannot regenerate scene: brand "${opts.story.brandId}" not registered.`
+      );
+    }
     const scene = opts.story.scenes[opts.sceneIndex];
 
     logger.info('Regenerating single scene', {
+      brandId: brand.id,
       sceneIndex: opts.sceneIndex,
       outputDir: opts.outputDir,
     });
 
     await this.rateLimiters.openrouterImage.consume('keyframe');
     const keyframe = await this.imageService.generateKeyframe({
+      brand,
       story: opts.story,
       scene,
       sceneIndex: opts.sceneIndex,
@@ -474,6 +568,7 @@ export class OrangeCatAgent {
 
     await this.rateLimiters.openrouterVideo.consume('clip');
     const clip = await this.videoClipService.generateClip({
+      brand,
       scene,
       sceneIndex: opts.sceneIndex,
       keyframePath: keyframe.path,
@@ -498,10 +593,28 @@ export class OrangeCatAgent {
    * Dry run — exercises only the LLM stage (story + caption).
    * Useful for validating Phase 1 in isolation before later phases land.
    */
-  public async dryRun(): Promise<{ story: Story; caption: string }> {
+  public async dryRun(opts: {
+    brandId?: string;
+    archetypeId?: string;
+    seed?: string;
+  } = {}): Promise<{ story: Story; caption: string }> {
     logger.info('🧪 Running dry run (LLM only)');
-    const story = await this.storyService.generateStory();
-    const caption = this.captionGenerator.generateCaption(story);
+    const brandId = opts.brandId ?? this.config.pipeline.defaultBrandId;
+    const brand = this.brandRegistry.get(brandId);
+    if (!brand) {
+      throw new Error(
+        `Unknown brand "${brandId}". Available: ${this.brandRegistry
+          .list()
+          .map((b) => b.id)
+          .join(', ') || '(none)'}`
+      );
+    }
+    const story = await this.storyService.generateStory({
+      brand,
+      archetypeId: opts.archetypeId,
+      seed: opts.seed,
+    });
+    const caption = this.captionGenerator.generateCaption(brand, story);
 
     console.log('\n=== STORY ===');
     console.log(JSON.stringify(story, null, 2));
@@ -521,7 +634,7 @@ export class OrangeCatAgent {
 
   public shutdown(): void {
     this.rateLimiters.stopAll();
-    logger.info('OrangeCatAgent shutdown');
+    logger.info('StoryAgent shutdown');
   }
 
   private sleep(ms: number): Promise<void> {

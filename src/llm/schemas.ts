@@ -1,17 +1,5 @@
 import { z } from 'zod';
 
-export const archetypeNames = [
-  'RagsToRiches',
-  'FromShelterToHome',
-  'StreamerCatGlowUp',
-  'VillainArcButSoft',
-  'ChonkToBestFriend',
-  'OfficeHeroJourney',
-] as const;
-
-export const ArchetypeNameSchema = z.enum(archetypeNames);
-export type ArchetypeNameZ = z.infer<typeof ArchetypeNameSchema>;
-
 export const moodNames = [
   'sad',
   'hopeful',
@@ -34,7 +22,8 @@ export const SceneSchema = z.object({
 });
 
 export const StorySchema = z.object({
-  archetype: ArchetypeNameSchema,
+  brandId: z.string().min(1),
+  archetypeId: z.string().min(1),
   title: z.string().min(1),
   narrative: z.string().min(1),
   totalDurationSeconds: z.number().int().positive(),
@@ -47,14 +36,21 @@ export type StoryZ = z.infer<typeof StorySchema>;
 
 /**
  * Hand-written JSON Schema mirroring StorySchema for OpenRouter / OpenAI
- * structured-outputs `response_format`. Kept inline (vs. derived from zod)
- * so the wire format is explicit and stable across zod versions.
+ * structured-outputs `response_format`. Archetype is a free-form string
+ * here (validated against the active brand's list after parse) because the
+ * valid set is dynamic per-brand and can't be expressed as a JSON-schema
+ * enum at request time.
+ *
+ * The LLM does NOT see `brandId` — the server fills that in after parsing,
+ * since the brand is a deployment-time choice, not the model's call. This
+ * keeps the structured-output contract narrow and avoids the LLM
+ * hallucinating a different brandId than the one the run was started with.
  */
 export const STORY_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: [
-    'archetype',
+    'archetypeId',
     'title',
     'narrative',
     'totalDurationSeconds',
@@ -63,7 +59,7 @@ export const STORY_JSON_SCHEMA = {
     'musicStyle',
   ],
   properties: {
-    archetype: { type: 'string', enum: [...archetypeNames] },
+    archetypeId: { type: 'string', minLength: 1 },
     title: { type: 'string', minLength: 1 },
     narrative: { type: 'string', minLength: 1 },
     totalDurationSeconds: { type: 'integer', minimum: 1 },

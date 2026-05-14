@@ -11,8 +11,17 @@ export interface OpenRouterConfig {
   videoModel: string;
   vlmModel: string;
   ttsModel: string;
+  musicModel: string;
   appName: string;
   appUrl: string;
+}
+
+export interface MusicConfig {
+  enabled: boolean;
+  /** Music volume relative to narration, in dB. Negative = quieter. */
+  volumeDb: number;
+  fadeInSeconds: number;
+  fadeOutSeconds: number;
 }
 
 export interface TTSConfig {
@@ -30,6 +39,8 @@ export interface PipelineConfig {
   evalRetriesPerScene: number;
   characterRefDir: string;
   videoDownloadPath: string;
+  brandsDir: string;
+  defaultBrandId: string;
 }
 
 export interface TikTokConfig {
@@ -46,6 +57,7 @@ export interface SchedulingConfig {
 export interface Config {
   openrouter: OpenRouterConfig;
   tts: TTSConfig;
+  music: MusicConfig;
   pipeline: PipelineConfig;
   tiktok: TikTokConfig;
   scheduling: SchedulingConfig;
@@ -75,6 +87,8 @@ export function loadConfig(): Config {
       vlmModel: process.env.OPENROUTER_VLM_MODEL || 'openai/gpt-5',
       ttsModel:
         process.env.OPENROUTER_TTS_MODEL || 'google/gemini-3.1-flash-tts-preview',
+      musicModel:
+        process.env.OPENROUTER_MUSIC_MODEL || 'google/lyria-3-pro-preview',
       appName: process.env.OPENROUTER_APP_NAME || 'oc-mill',
       appUrl: process.env.OPENROUTER_APP_URL || 'https://github.com/ferine/oc-mill',
     },
@@ -97,6 +111,15 @@ export function loadConfig(): Config {
         epic: process.env.TTS_VOICE_EPIC || 'Fenrir',
       },
     },
+    music: {
+      // Off by default — Lyria 3 Pro is ~$0.08/run. Set MUSIC_ENABLED=true
+      // once the wire format has been confirmed against a real OpenRouter
+      // response and you're happy with the per-run cost.
+      enabled: process.env.MUSIC_ENABLED === 'true',
+      volumeDb: parseFloat(process.env.MUSIC_VOLUME_DB || '-18'),
+      fadeInSeconds: parseFloat(process.env.MUSIC_FADE_IN_SECONDS || '1.5'),
+      fadeOutSeconds: parseFloat(process.env.MUSIC_FADE_OUT_SECONDS || '2'),
+    },
     pipeline: {
       videoDurationSeconds: parseInt(process.env.VIDEO_DURATION_SECONDS || '55', 10),
       aspectRatio: '9:16',
@@ -107,6 +130,8 @@ export function loadConfig(): Config {
       evalRetriesPerScene: parseInt(process.env.EVAL_RETRIES_PER_SCENE || '1', 10),
       characterRefDir: process.env.CHARACTER_REF_DIR || '/tmp/oc-mill-character-refs',
       videoDownloadPath: process.env.VIDEO_DOWNLOAD_PATH || '/tmp/oc-mill-videos',
+      brandsDir: process.env.BRANDS_DIR || './brands',
+      defaultBrandId: process.env.DEFAULT_BRAND_ID || 'orange-cat',
     },
     tiktok: {
       apiKey: process.env.TIKTOK_API_KEY!,
@@ -127,6 +152,8 @@ export function loadConfig(): Config {
     imageModel: config.openrouter.imageModel,
     videoModel: config.openrouter.videoModel,
     ttsModel: config.openrouter.ttsModel,
+    musicModel: config.openrouter.musicModel,
+    musicEnabled: config.music.enabled,
     sceneConcurrency: config.pipeline.sceneConcurrency,
     clipDurationSeconds: config.pipeline.clipDurationSeconds,
   });

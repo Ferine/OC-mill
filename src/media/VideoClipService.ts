@@ -4,6 +4,7 @@ import { OpenRouterVideoClient } from '../clients/OpenRouterVideoClient';
 import { runWithConcurrency } from '../pipeline/concurrency';
 import { PipelineEventBus } from '../pipeline/events';
 import { Story, Scene } from '../story/types';
+import { Brand } from '../brand/types';
 import { SceneKeyframeResult } from './ImageService';
 import { isCachedFile } from '../utils/io';
 import { logger } from '../utils/logger';
@@ -28,6 +29,7 @@ export class VideoClipService {
    * preserves character continuity end-to-end.
    */
   public async generateClip(opts: {
+    brand: Brand;
     scene: Scene;
     sceneIndex: number;
     keyframePath: string;
@@ -71,7 +73,7 @@ export class VideoClipService {
     });
 
     const firstFrame = await readFile(opts.keyframePath);
-    const prompt = buildClipPrompt(opts.scene);
+    const prompt = buildClipPrompt(opts.brand, opts.scene);
 
     const jobId = await this.client.createJob({
       model: this.model,
@@ -109,6 +111,7 @@ export class VideoClipService {
   }
 
   public async generateAllClips(opts: {
+    brand: Brand;
     story: Story;
     keyframes: SceneKeyframeResult[];
     outputDir: string;
@@ -116,6 +119,7 @@ export class VideoClipService {
     events?: PipelineEventBus;
   }): Promise<SceneClipResult[]> {
     logger.info('Generating clips for all scenes', {
+      brandId: opts.brand.id,
       sceneCount: opts.story.scenes.length,
       outputDir: opts.outputDir,
       concurrency: opts.concurrency,
@@ -127,6 +131,7 @@ export class VideoClipService {
         throw new Error(`Missing keyframe for scene ${sceneIndex}`);
       }
       return this.generateClip({
+        brand: opts.brand,
         scene,
         sceneIndex,
         keyframePath: keyframe.path,
@@ -139,14 +144,14 @@ export class VideoClipService {
   }
 }
 
-function buildClipPrompt(scene: Scene): string {
+function buildClipPrompt(brand: Brand, scene: Scene): string {
   return `Vertical 9:16 cinematic video clip, ${scene.durationSeconds} seconds.
 
 Scene description: ${scene.description}
 Environment: ${scene.environment}
-Cat action and motion: ${scene.catAction}
+Character action and motion: ${scene.catAction}
 Camera movement: ${scene.cameraMotion}
 Mood: ${scene.mood}
 
-Animate naturally from the provided first frame. Preserve the cat's exact appearance throughout the clip — same chubby orange tabby, same fur, same eyes. No text overlays, no captions, no UI.`;
+Animate naturally from the provided first frame. ${brand.prompts.sceneContinuity} No text overlays, no captions, no UI.`;
 }

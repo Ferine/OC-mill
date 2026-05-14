@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { z } from 'zod';
 import { OpenRouterConfig } from '../utils/config';
 import { Scene } from '../story/types';
+import { Brand } from '../brand/types';
 import { logger } from '../utils/logger';
 
 const EvalResultSchema = z.object({
@@ -23,18 +24,12 @@ const EVAL_JSON_SCHEMA = {
   },
 } as const;
 
-const SYSTEM_PROMPT = `You are a strict QA reviewer for a TikTok video pipeline featuring a recurring fat orange cat character.
+function buildSystemPrompt(brand: Brand): string {
+  return `You are a strict QA reviewer for a TikTok video pipeline featuring a recurring character from the brand "${brand.displayName}".
 
 Evaluate the supplied image against the scene description.
 
-PASS criteria — ALL must hold:
-- A chubby orange tabby cat is clearly visible
-- Cat has bright orange-and-white striped fur and a prominent round belly
-- Big expressive eyes
-- The image roughly matches the scene's environment, mood, and described action
-- No text overlays, captions, watermarks, or other animals/humans unless required
-
-FAIL on any of: missing cat, wrong-color cat, thin/skinny cat, multiple cats, off-prompt environment, watermarks, garbled visuals.
+${brand.prompts.evalCriteria}
 
 DO NOT evaluate aspect ratio, image dimensions, framing tightness, or cropping.
 These are normalized in post-processing (the compositor scales+crops to
@@ -42,12 +37,11 @@ These are normalized in post-processing (the compositor scales+crops to
 slightly off-aspect image is fine as long as the subject matter is correct.
 
 When you fail an image, give specific, actionable feedback about the SUBJECT
-or SCENE CONTENT that the image generator can fix on the next attempt
-(e.g. "cat is not chubby enough — emphasize round belly", "wrong environment
-— should be a rainy alley not a bedroom"). Do not give feedback about
-dimensions or aspect.
+or SCENE CONTENT that the image generator can fix on the next attempt. Do not
+give feedback about dimensions or aspect.
 
 Return your verdict as JSON matching the provided schema. Be honest — false passes ship bad content.`;
+}
 
 /**
  * VLM-driven scene QA. Used to gate per-scene keyframes before they go into
@@ -71,18 +65,20 @@ export class EvalService {
   }
 
   public async evaluateKeyframe(opts: {
+    brand: Brand;
     image: Buffer;
     scene: Scene;
   }): Promise<EvalResult> {
     const dataUrl = `data:image/png;base64,${opts.image.toString('base64')}`;
     const userText = `Scene description: ${opts.scene.description}
 Environment: ${opts.scene.environment}
-Cat action: ${opts.scene.catAction}
+Character action: ${opts.scene.catAction}
 Mood: ${opts.scene.mood}
 
 Evaluate the attached image against this scene.`;
 
     logger.debug('Evaluating keyframe', {
+      brandId: opts.brand.id,
       model: this.model,
       mood: opts.scene.mood,
     });
@@ -90,7 +86,7 @@ Evaluate the attached image against this scene.`;
     const response = await this.client.chat.completions.create({
       model: this.model,
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: buildSystemPrompt(opts.brand) },
         {
           role: 'user',
           content: [

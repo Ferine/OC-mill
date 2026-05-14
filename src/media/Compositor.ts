@@ -18,6 +18,18 @@ export interface ComposeOptions {
   height?: number;
   /** Frame rate, default 30. */
   fps?: number;
+  /** Optional soundtrack mixed under the narration. */
+  music?: MusicMixOptions;
+}
+
+export interface MusicMixOptions {
+  path: string;
+  /** Volume relative to narration in dB. Negative = quieter. Default -18. */
+  volumeDb?: number;
+  /** Fade-in length, seconds. Default 1.5. */
+  fadeInSeconds?: number;
+  /** Fade-out length, seconds. Default 2. */
+  fadeOutSeconds?: number;
 }
 
 export interface ComposeResult {
@@ -102,19 +114,140 @@ export class Compositor {
       sceneOutputs.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n')
     );
 
-    await this.concat(listPath, opts.outputPath);
-
     const totalDuration = opts.story.scenes.reduce(
       (sum, s) => sum + s.durationSeconds,
       0
     );
 
+    if (opts.music) {
+      // Concat to an intermediate, then mix music in the final pass.
+      // Video is stream-copied in both passes — only audio gets re-encoded.
+      const intermediatePath = join(opts.outputDir, 'concat-no-music.mp4');
+      await this.concat(listPath, intermediatePath);
+      try {
+        await this.mixMusic({
+          videoPath: intermediatePath,
+          musicPath: opts.music.path,
+          volumeDb: opts.music.volumeDb ?? -18,
+          fadeInSeconds: opts.music.fadeInSeconds ?? 1.5,
+          fadeOutSeconds: opts.music.fadeOutSeconds ?? 2,
+          totalDurationSeconds: totalDuration,
+          outputPath: opts.outputPath,
+        });
+      } catch (err) {
+        // Music mix is non-fatal — fall back to the music-less concat
+        // rather than losing the run over a soundtrack issue.
+        logger.warn('Music mix failed — using narration-only output', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        await this.concat(listPath, opts.outputPath);
+      }
+    } else {
+      await this.concat(listPath, opts.outputPath);
+    }
+
     logger.info('Final video composed', {
       outputPath: opts.outputPath,
       totalDurationSeconds: totalDuration,
+      hasMusic: !!opts.music,
     });
 
     return { path: opts.outputPath, durationSeconds: totalDuration };
+  }
+
+  /**
+   * Mix a soundtrack under the narrated video. Re-encodes audio (the
+   * narration was AAC; the mixed output stays AAC) but stream-copies video.
+   * Music is trimmed to the video duration, attenuated by `volumeDb`, then
+   * faded in at start and out at end. amix uses `duration=first` so the
+   * narration track defines length — extra music tail is dropped.
+   */
+  private mixMusic(opts: {
+    videoPath: string;
+    musicPath: string;
+    volumeDb: number;
+    fadeInSeconds: number;
+    fadeOutSeconds: number;
+    totalDurationSeconds: number;
+    outputPath: string;
+  }): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const fadeOutStart = Math.max(
+        0,
+        opts.totalDurationSeconds - opts.fadeOutSeconds
+      );
+
+      const filterChain: ffmpeg.FilterSpecification[] = [
+        // Narration audio passes through unchanged.
+        { filter: 'anull', inputs: '0:a', outputs: 'narr' },
+        // Music: trim, attenuate, fade.
+        {
+          filter: 'atrim',
+          options: `duration=${opts.totalDurationSeconds}`,
+          inputs: '1:a',
+          outputs: 'mtrim',
+        },
+        {
+          filter: 'volume',
+          options: `volume=${opts.volumeDb}dB`,
+          inputs: 'mtrim',
+          outputs: 'mvol',
+        },
+        {
+          filter: 'afade',
+          options: `t=in:st=0:d=${opts.fadeInSeconds}`,
+          inputs: 'mvol',
+          outputs: 'mfin',
+        },
+        {
+          filter: 'afade',
+          options: `t=out:st=${fadeOutStart}:d=${opts.fadeOutSeconds}`,
+          inputs: 'mfin',
+          outputs: 'music',
+        },
+        // Mix. duration=first locks output length to narration; dropout
+        // prevents auto-level changes when one stream is silent.
+        {
+          filter: 'amix',
+          options: 'inputs=2:duration=first:dropout_transition=0:normalize=0',
+          inputs: ['narr', 'music'],
+          outputs: 'aout',
+        },
+      ];
+
+      const stderrLines: string[] = [];
+
+      ffmpeg(opts.videoPath)
+        .input(opts.musicPath)
+        .complexFilter(filterChain)
+        .outputOptions([
+          '-map', '0:v',
+          '-map', '[aout]',
+          '-c:v', 'copy',
+          '-c:a', 'aac',
+          '-b:a', '192k',
+          '-movflags', '+faststart',
+        ])
+        .save(opts.outputPath)
+        .on('start', (cmd) => logger.info('ffmpeg music-mix start', { cmd }))
+        .on('stderr', (line) => {
+          stderrLines.push(line);
+          if (stderrLines.length > 200) stderrLines.shift();
+        })
+        .on('end', () => {
+          logger.info('Music mix finished', { outputPath: opts.outputPath });
+          resolve();
+        })
+        .on('error', (err) => {
+          const tail = stderrLines.slice(-30).join('\n');
+          logger.error('Music mix failed', {
+            outputPath: opts.outputPath,
+            error: err.message,
+            stderrTail: tail,
+          });
+          reject(new Error(`${err.message}\nffmpeg stderr:\n${tail}`));
+        });
+    });
   }
 
   private async composeScene(opts: {

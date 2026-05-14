@@ -2,11 +2,14 @@ import Fastify from 'fastify';
 import staticPlugin from '@fastify/static';
 import { join, basename, resolve, sep } from 'path';
 import { readdir, stat } from 'fs/promises';
-import { OrangeCatAgent } from '../agent/OrangeCatAgent';
+import { existsSync } from 'fs';
+import { StoryAgent } from '../agent/StoryAgent';
 import { Config } from '../utils/config';
 import { logger } from '../utils/logger';
 import { isCachedFile, readJson } from '../utils/io';
 import { Story } from '../story/types';
+import { BrandSchema } from '../brand/schemas';
+import { Brand } from '../brand/types';
 import { RunRegistry } from './runRegistry';
 
 interface RunSummary {
@@ -36,22 +39,35 @@ interface RunDetail extends RunSummary {
 export async function startServer(
   config: Config,
   port: number = 5173,
-  agent?: OrangeCatAgent
+  agent?: StoryAgent
 ) {
   const app = Fastify({ logger: false });
 
-  await app.register(staticPlugin, {
-    root: resolve(process.cwd(), 'public'),
-    prefix: '/',
-  });
+  // Serve the built web UI from web/dist when present. During the brand
+  // pivot the directory may not exist yet (frontend is the last step); a
+  // placeholder route below handles that case.
+  const webRoot = resolve(process.cwd(), 'web', 'dist');
+  if (existsSync(webRoot)) {
+    await app.register(staticPlugin, { root: webRoot, prefix: '/' });
+  } else {
+    app.get('/', async (_req, reply) => {
+      reply
+        .code(503)
+        .header('Content-Type', 'text/html; charset=utf-8')
+        .send(
+          '<h1>web/dist not built yet</h1><p>Run <code>pnpm build:web</code> to build the UI, or <code>pnpm dev:web</code> for the dev server.</p>'
+        );
+    });
+  }
 
   // Reuse the already-initialized agent when the caller has one, otherwise
   // construct + init our own (e.g. when startServer is used from tests).
   if (!agent) {
-    agent = new OrangeCatAgent(config);
+    agent = new StoryAgent(config);
     await agent.initialize();
   }
   const ownedAgent = agent;
+  const brandRegistry = ownedAgent.getBrandRegistry();
   const registry = new RunRegistry();
   const root = config.pipeline.videoDownloadPath;
 
@@ -80,12 +96,30 @@ export async function startServer(
 
   // ---------- Start / resume ----------
 
-  app.post('/api/runs', async () => {
+  app.post('/api/runs', async (req, reply) => {
+    const body = (req.body ?? {}) as {
+      brandId?: string;
+      archetypeId?: string;
+      seed?: string;
+    };
+    const brandId = body.brandId ?? config.pipeline.defaultBrandId;
+    if (!brandRegistry.has(brandId)) {
+      return reply
+        .code(400)
+        .send({ error: `unknown brandId "${brandId}"` });
+    }
+    const seed =
+      typeof body.seed === 'string' ? body.seed.trim().slice(0, 500) : undefined;
     const runId = `run-${new Date().toISOString().replace(/[:.]/g, '-')}`;
     const runDir = join(root, runId);
     const run = registry.register(runId, runDir);
-    fireAndForget(ownedAgent, { events: run.bus });
-    return { runId, runDir };
+    fireAndForget(ownedAgent, {
+      events: run.bus,
+      brandId,
+      archetypeId: body.archetypeId,
+      seed,
+    });
+    return { runId, runDir, brandId, archetypeId: body.archetypeId, seed };
   });
 
   app.post('/api/runs/:id/resume', async (req, reply) => {
@@ -165,6 +199,83 @@ export async function startServer(
     return reply.sendFile(subpath, runDir);
   });
 
+  // ---------- Brand CRUD ----------
+
+  app.get('/api/brands', async () => brandRegistry.list());
+
+  app.get('/api/brands/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const brand = brandRegistry.get(id);
+    if (!brand) return reply.code(404).send({ error: 'not found' });
+    return brand;
+  });
+
+  app.post('/api/brands', async (req, reply) => {
+    const parsed = BrandSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply
+        .code(400)
+        .send({ error: 'invalid brand', issues: parsed.error.issues });
+    }
+    const brand: Brand = parsed.data;
+    if (brandRegistry.has(brand.id)) {
+      return reply.code(409).send({ error: `brand "${brand.id}" exists` });
+    }
+    await brandRegistry.upsert(brand);
+    return brand;
+  });
+
+  app.put('/api/brands/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const parsed = BrandSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return reply
+        .code(400)
+        .send({ error: 'invalid brand', issues: parsed.error.issues });
+    }
+    if (parsed.data.id !== id) {
+      return reply
+        .code(400)
+        .send({ error: 'body id does not match path id' });
+    }
+    await brandRegistry.upsert(parsed.data);
+    return parsed.data;
+  });
+
+  app.post('/api/brands/:id/suggest-seed', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!brandRegistry.has(id)) {
+      return reply.code(404).send({ error: 'unknown brand' });
+    }
+    const body = (req.body ?? {}) as { archetypeId?: string };
+    try {
+      const seed = await ownedAgent.suggestSeed({
+        brandId: id,
+        archetypeId: body.archetypeId,
+      });
+      return { seed };
+    } catch (err) {
+      return reply
+        .code(502)
+        .send({ error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+
+  app.delete('/api/brands/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!brandRegistry.has(id)) {
+      return reply.code(404).send({ error: 'not found' });
+    }
+    try {
+      await brandRegistry.delete(id);
+    } catch (err) {
+      return reply
+        .code(409)
+        .send({ error: err instanceof Error ? err.message : String(err) });
+    }
+    return { ok: true };
+  });
+
   // ---------- Boot ----------
 
   await app.listen({ host: '127.0.0.1', port });
@@ -174,8 +285,8 @@ export async function startServer(
 // ---------- Helpers ----------
 
 function fireAndForget(
-  agent: OrangeCatAgent,
-  opts: Parameters<OrangeCatAgent['runOnce']>[0]
+  agent: StoryAgent,
+  opts: Parameters<StoryAgent['runOnce']>[0]
 ): void {
   agent.runOnce(opts).catch((err) => {
     logger.error('Background run threw', {
@@ -242,7 +353,7 @@ async function summarize(
     try {
       const story = await readJson<Story>(storyPath);
       storyTitle = story.title;
-      archetype = story.archetype;
+      archetype = story.archetypeId;
       sceneCount = story.scenes.length;
     } catch {
       // ignore malformed

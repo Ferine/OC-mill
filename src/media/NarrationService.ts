@@ -76,17 +76,42 @@ export class NarrationService {
 
       opts.events?.publish({ type: 'scene.narration.start', sceneIndex });
 
-      const voice = this.pickVoice(scene.mood, opts.story.overallMood);
-      const raw = await this.client.synthesize({
-        voice,
-        text: scene.subtitleText,
-        format: this.format,
-      });
-      const audio = this.format === 'pcm' ? wrapPcmAsWav(raw) : raw;
+      const primaryVoice = this.pickVoice(scene.mood, opts.story.overallMood);
+      let audio: Buffer;
+      let usedVoice: string | undefined;
+      try {
+        const { raw, voice } = await this.synthesizeWithFallback({
+          sceneIndex,
+          text: scene.subtitleText,
+          primaryVoice,
+        });
+        audio = this.format === 'pcm' ? wrapPcmAsWav(raw) : raw;
+        usedVoice = voice;
+      } catch (err) {
+        // All voices exhausted — Gemini is rejecting this specific text
+        // (suspected moderation false-positive). Fall back to silence sized
+        // to the scene duration so the run completes; the user can fix the
+        // input text and re-resume. Only meaningful when output is WAV/PCM.
+        if (this.format !== 'pcm') {
+          throw err;
+        }
+        logger.warn(
+          'All TTS voices failed — falling back to silent narration for this scene',
+          {
+            sceneIndex,
+            text: scene.subtitleText,
+            durationSeconds: scene.durationSeconds,
+            error: err instanceof Error ? err.message : String(err),
+          }
+        );
+        audio = generateSilenceWav(scene.durationSeconds);
+        usedVoice = 'silence';
+      }
       await atomicWrite(path, audio);
       logger.info('Narration generated', {
         sceneIndex,
-        voice,
+        voice: usedVoice,
+        fellBackFrom: usedVoice === primaryVoice ? undefined : primaryVoice,
         path,
         bytes: audio.length,
       });
@@ -100,6 +125,52 @@ export class NarrationService {
     });
 
     return runWithConcurrency(tasks, opts.concurrency);
+  }
+
+  /**
+   * Some voice+text combinations cause Gemini TTS to return HTTP 200 with an
+   * empty audio body (suspected content-filter false positive on certain
+   * proper nouns; the client retries already and exhausts). Rather than
+   * losing the scene, walk the remaining voices in the rotation until one
+   * succeeds.
+   */
+  private async synthesizeWithFallback(opts: {
+    sceneIndex: number;
+    text: string;
+    primaryVoice: string;
+  }): Promise<{ raw: Buffer; voice: string }> {
+    const fallbacks = Array.from(
+      new Set([
+        opts.primaryVoice,
+        ...Object.values(this.voicesByMood).filter((v) => v !== opts.primaryVoice),
+      ])
+    );
+
+    let lastError: unknown;
+    for (let i = 0; i < fallbacks.length; i++) {
+      const voice = fallbacks[i];
+      try {
+        const raw = await this.client.synthesize({
+          voice,
+          text: opts.text,
+          format: this.format,
+        });
+        return { raw, voice };
+      } catch (err) {
+        lastError = err;
+        const more = i < fallbacks.length - 1;
+        logger.warn('Narration voice failed', {
+          sceneIndex: opts.sceneIndex,
+          voice,
+          willTryNextVoice: more,
+          nextVoice: more ? fallbacks[i + 1] : undefined,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new Error('All narration voices failed');
   }
 
   private fileExtension(): string {
@@ -116,6 +187,18 @@ export class NarrationService {
       Object.values(this.voicesByMood)[0]
     );
   }
+}
+
+/**
+ * Generate a WAV buffer of pure silence for `durationSeconds` at the same
+ * PCM layout as Gemini TTS. Used as a last-resort fallback when a scene's
+ * text is rejected by every voice in the rotation, so the run can still
+ * complete with the scene marked silent.
+ */
+function generateSilenceWav(durationSeconds: number): Buffer {
+  const samples = Math.round(durationSeconds * PCM_SAMPLE_RATE);
+  const bytes = samples * PCM_CHANNELS * (PCM_BITS_PER_SAMPLE / 8);
+  return wrapPcmAsWav(Buffer.alloc(bytes));
 }
 
 /**

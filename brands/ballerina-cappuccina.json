@@ -1,0 +1,86 @@
+{
+  "id": "ballerina-cappuccina",
+  "displayName": "Ballerina Cappuccina",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "Ballerina Cappuccina, a graceful ballerina whose head is an oversized cappuccino mug",
+    "storyCharacter": "THE CHARACTER\n- Slender ballerina body in a classic pink tutu and pointe shoes.\n- Her head is a large white ceramic cappuccino mug, complete with handle and foamed milk top.\n- The foam swirls slightly, and a dusting of cocoa powder rests on top.\n- Personality: poised, deeply Italian, narrates her own life in dramatic operatic whispers, easily offended by bad espresso.\n- Same body, same mug-head, same tutu in every scene.",
+    "referenceSheet": "Character reference sheet for a recurring brainrot TikTok series: Ballerina Cappuccina.\n\nPhysical traits — MUST be consistent across every appearance:\n- Pink tutu, classic pointe shoes, ballerina posture\n- Head replaced by a large white ceramic cappuccino mug (with handle, with foamed milk surface, with cocoa-powder dust)\n- Realistic skin tone on arms and legs, soft cinematic lighting\n- AI-meme Italian-brainrot aesthetic — uncanny but charming, not horror\n\nComposition: full-body neutral studio shot, plain soft-grey background, en pointe pose, vertical 9:16 framing. No text, no other characters.",
+    "sceneContinuity": "The character MUST stay consistent — same pink-tutu ballerina with the same white cappuccino-mug head, same foam, same cocoa dust. Do not give her a human face. Do not change the tutu color. Do not swap the mug for a glass.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A ballerina with a cappuccino-mug head is clearly visible\n- Head is a white ceramic mug with foam and cocoa dust on top\n- Wears a pink tutu and pointe shoes\n- Image matches the scene environment / mood\n- No text overlays, watermarks, or unrelated characters\n\nFAIL on any of: missing character, human face instead of mug, wrong tutu color, no foam, multiple characters, off-prompt environment, garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "audition-day",
+      "label": "Audition Day",
+      "guidance": "Cappuccina auditions for the prestigious La Scala but the conductor only drinks decaf. Operatic-level offense → flawless pirouette of revenge."
+    },
+    {
+      "id": "barista-rivalry",
+      "label": "Barista Rivalry",
+      "guidance": "She moonlights as a barista. A rival café opens across the street. Latte-art duel at dawn."
+    },
+    {
+      "id": "ramadan-vibes",
+      "label": "Late-Night Pirouette",
+      "guidance": "Cappuccina pirouettes through an empty Italian piazza at 3am, kept awake by her own caffeine. Surreal cityscape, lonely-but-elegant tone."
+    },
+    {
+      "id": "wedding-cake-disaster",
+      "label": "Wedding Cake Disaster",
+      "guidance": "She's hired to dance atop a five-tier wedding cake. Gravity wins. She wins anyway."
+    }
+  ],
+  "caption": {
+    "coreHashtags": [
+      "#ballerinacappuccina",
+      "#italianbrainrot",
+      "#brainrot",
+      "#aimemes",
+      "#cappuccino"
+    ],
+    "moodHashtags": {
+      "dramatic": ["#dramatic", "#operatic", "#scandal"],
+      "epic": ["#epic", "#legend"],
+      "funny": ["#funny", "#chaos"],
+      "heartwarming": ["#wholesome", "#elegant"],
+      "hopeful": ["#bellissima"],
+      "sad": ["#decaf"]
+    },
+    "archetypeHashtags": {
+      "audition-day": ["#lascala", "#audition", "#ballet"],
+      "barista-rivalry": ["#barista", "#latteart", "#cafewars"],
+      "ramadan-vibes": ["#piazza", "#3am", "#italia"],
+      "wedding-cake-disaster": ["#weddingfail", "#cake"]
+    },
+    "archetypeOpenings": {
+      "audition-day": [
+        "She's auditioning at La Scala ☕🩰",
+        "The conductor ordered DECAF 😱",
+        "POV: cappuccino-head ballerina goes pro"
+      ],
+      "barista-rivalry": [
+        "Two cafés, one piazza ☕☕",
+        "Latte art duel at dawn 🥋",
+        "She's the only barista with foam for a face"
+      ],
+      "ramadan-vibes": [
+        "3am pirouette in Roma 🌙",
+        "Caffeine-fueled solo show 🩰",
+        "Late-night Italian elegance ✨"
+      ],
+      "wedding-cake-disaster": [
+        "Hired to dance on a wedding cake 🎂",
+        "Gravity was undefeated... until today",
+        "Five tiers, one pirouette 💍"
+      ]
+    },
+    "closingCtas": [
+      "Bellissima, no? ☕",
+      "Part 2 dropping soon 🩰",
+      "Follow for more pirouettes 🌀",
+      "Like if you'd order from her café ☕"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#tiktoktrending"]
+  }
+}

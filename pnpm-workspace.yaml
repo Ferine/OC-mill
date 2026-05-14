@@ -1,5 +1,6 @@
 packages:
   - "."
+  - "web"
 
 # --- Supply-chain hardening ---
 
@@ -10,7 +11,8 @@ minimumReleaseAgeExclude: []
 
 # Lifecycle scripts: empty = block all install scripts.
 # Add packages explicitly when a legitimate native build needs them.
-allowBuilds: {}
+allowBuilds:
+  esbuild: true
 
 # Save exact versions for new `pnpm add` operations
 savePrefix: ""

@@ -1,0 +1,103 @@
+{
+  "id": "gop-debate-frog",
+  "displayName": "GOP Debate Frog",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a small green goblin frog who keeps ending up on the GOP primary debate stage — pure absurdist satire of debate-night theatrics, not pointed at any real candidate",
+    "storyCharacter": "THE CHARACTER\n- A small green goblin frog (knee-high to a person), hunched and gangly.\n- Wears an enormous boxy navy-blue suit several sizes too big, sleeves bunched at the wrists.\n- Wide red satin tie that nearly touches the floor.\n- Tiny American-flag lapel pin (clearly oversized for him).\n- Combover of three sparse green wisps glued to the top of his head.\n- One missing front tooth. Permanently mid-rant face.\n- Personality: confidently bullshits policy, mispronounces every wonky term, mistakes the moderator's questions for personal attacks, loves the crowd. Pure satire of debate-night theatrics — never modeled on any real-world candidate.\n- Same frog, same suit, same combover, same tie in every scene.",
+    "referenceSheet": "Character reference sheet for a recurring satirical TikTok series: a goblin frog GOP-primary candidate.\n\nPhysical traits — MUST be consistent across every appearance:\n- Small green goblin frog, hunched, gangly, comically amphibian face\n- Boxy oversized navy-blue suit jacket and trousers, sleeves bunched at wrists\n- Wide red satin necktie nearly touching the floor\n- Tiny American-flag enamel lapel pin (slightly too large for his lapel)\n- Three sparse green wisps as a combover\n- One missing front tooth, indignant expression\n\nComposition: full-body neutral studio shot, plain soft-grey background, even cinematic lighting, vertical 9:16 framing. Pure satirical caricature — fictional, not modeled on any real person. No real political logos beyond the tiny generic flag pin, no real candidate likenesses, no text overlays, no other characters.",
+    "sceneContinuity": "The frog candidate MUST stay consistent — same green goblin frog in the oversized navy suit, red tie, flag pin, sparse green combover, missing tooth. Do not give him a human face. Do not change suit to any other outfit. Do not depict any real political figure or use any real candidate's likeness, name, slogan, or branding. This is fictional satire only.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A small green goblin frog is clearly visible, hunched and amphibian-faced\n- He is wearing an oversized navy suit and a wide red tie\n- A tiny American-flag lapel pin is visible\n- He has a green-wisp combover and at least one missing front tooth\n- Image matches the scene environment (debate stage, town hall, convention floor, motorcade, etc.)\n- No text overlays, no real political-figure likenesses, no real campaign branding or logos\n\nFAIL on any of: missing frog, normal-looking frog, no suit, no tie, no flag pin, real-person likeness, real campaign branding, off-prompt environment, multiple frogs, garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "town-hall-derailment",
+      "label": "Town Hall Derailment",
+      "guidance": "Frog candidate fields questions at an Iowa diner town hall. Every question, no matter how mundane, becomes a five-minute rant about an unrelated grievance. Ends with him sincerely apologizing to a senior citizen about something the senior never brought up."
+    },
+    {
+      "id": "iowa-caucus-disaster",
+      "label": "Iowa Caucus Disaster",
+      "guidance": "Frog gets hopelessly lost in a blizzard driving to the caucus. Stops at a gas station. Wins the caucus by being the only candidate still in the state by midnight. Acceptance speech delivered from inside a Casey's General Store."
+    },
+    {
+      "id": "convention-floor-chaos",
+      "label": "Convention Floor Chaos",
+      "guidance": "A fictional party convention. The frog wanders onto the main stage during a setup break, is mistaken for the keynote speaker, and delivers an extemporaneous speech that contains exactly two policy positions and one impassioned defense of a cereal mascot."
+    },
+    {
+      "id": "debate-night-meltdown",
+      "label": "Debate Night Meltdown",
+      "guidance": "Live televised debate. The frog spends the entire hour at war with his own podium microphone, accusing it of bias. The other candidates are off-camera or visible only as blurry silhouettes. By the closing statement he's befriended the microphone."
+    },
+    {
+      "id": "motorcade-mishap",
+      "label": "Motorcade Mishap",
+      "guidance": "Frog's tiny motorcade (one black SUV + a pizza-delivery scooter) breaks down on the way to a fundraiser. He campaigns at the AAA tow yard while waiting. Wins three new endorsements from mechanics."
+    }
+  ],
+  "caption": {
+    "coreHashtags": [
+      "#gopdebatefrog",
+      "#politicstok",
+      "#satire",
+      "#brainrot",
+      "#frogtok"
+    ],
+    "moodHashtags": {
+      "funny": ["#politicalsatire", "#absurd", "#meme"],
+      "dramatic": ["#debatenight", "#hot mic"],
+      "epic": ["#stumpspeech", "#legend"],
+      "heartwarming": ["#wholesomefrog"],
+      "hopeful": ["#hopium"],
+      "sad": ["#concessionspeech"]
+    },
+    "archetypeHashtags": {
+      "town-hall-derailment": ["#townhall", "#iowa", "#dinerpolitics"],
+      "iowa-caucus-disaster": ["#iowacaucus", "#blizzard", "#caseys"],
+      "convention-floor-chaos": ["#convention", "#balloondrop"],
+      "debate-night-meltdown": ["#debatenight", "#hotmic", "#moderator"],
+      "motorcade-mishap": ["#motorcade", "#campaigntrail", "#endorsement"]
+    },
+    "archetypeOpenings": {
+      "town-hall-derailment": [
+        "POV: a goblin frog took the mic at your town hall 🐸🎤",
+        "He was asked about potholes. He talked about cereal. 📺",
+        "Town hall went left immediately"
+      ],
+      "iowa-caucus-disaster": [
+        "POV: lost on the way to the Iowa caucus 🌨️",
+        "Casey's General Store speech incoming 🍕",
+        "He won by being the last frog standing ❄️"
+      ],
+      "convention-floor-chaos": [
+        "He just walked onto the main stage 🎤🎈",
+        "Two policy positions, one cereal-mascot defense 🥣",
+        "Balloon drop hit the wrong frog 🎈"
+      ],
+      "debate-night-meltdown": [
+        "He's fighting the microphone again 🎙️🥊",
+        "POV: closing statement is about the mic now 📺",
+        "Debate moderator can't take it anymore 😬"
+      ],
+      "motorcade-mishap": [
+        "Motorcade is a Suburban and a Domino's scooter 🛵",
+        "Campaign trail pit stop at the AAA yard 🚗",
+        "Mechanics just endorsed him 🔧"
+      ]
+    },
+    "closingCtas": [
+      "Satire — but make it scrollstop 🐸",
+      "Part 2 on convention night 🎈",
+      "Follow for more debate-frog 🎤",
+      "Like if you'd vote pothole reform 🕳️"
+    ],
+    "trendingHashtags": [
+      "#fyp",
+      "#foryou",
+      "#viral",
+      "#politicalcomedy",
+      "#satire"
+    ]
+  }
+}

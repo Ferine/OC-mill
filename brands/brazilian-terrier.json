@@ -1,0 +1,105 @@
+{
+  "id": "brazilian-terrier",
+  "displayName": "Brazilian Terrier",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a small Brazilian Terrier (Terrier Brasileiro / Fox Paulistinha) who's tiny, alert, and hopelessly extra",
+    "storyCharacter": "THE CHARACTER\n- A small Brazilian Terrier — short, smooth coat, mostly bright white with crisp black saddle patches and warm tan markings above the eyes and on the muzzle.\n- Folded ear tips (semi-erect), bright dark eyes, neat black nose, lean athletic build.\n- About knee-high to a person, perpetually mid-pounce.\n- Wears a slim red collar with a tiny brass tag.\n- Personality: hyper-alert, fearless to a fault, sass first / think later, deeply convinced he's the protagonist of every scene. Speaks (in his head) in punchy Portuguese-flavored onomatopoeia: \"hã?!\", \"vai vai vai\", \"AI MEU DEUS\".\n- Same dog, same markings, same red collar in every scene.",
+    "referenceSheet": "Character reference sheet for a recurring brainrot TikTok series: a Brazilian Terrier (Terrier Brasileiro).\n\nPhysical traits — MUST be consistent across every appearance:\n- Small terrier, mostly bright white short smooth coat\n- Distinct black saddle patches across the back, warm tan markings above the eyes (\"eyebrows\") and on the muzzle and lower legs\n- Folded ear tips, semi-erect, dark bright eyes, neat black nose, lean athletic stance\n- Slim red flat collar with a small brass dog tag, no brand text or logos\n- Approximately knee-high to a human\n\nComposition: full-body neutral studio shot, plain soft-grey background, even cinematic lighting, photorealistic, vertical 9:16 framing. No text, no real-world brand logos, no other characters.",
+    "sceneContinuity": "The dog MUST stay consistent — same small Brazilian Terrier, same white coat with black saddle and tan eyebrow markings, same folded-tip ears, same slim red collar with brass tag. Do not invent a different breed. Do not change collar color. Do not give him a longer or thicker coat.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A small Brazilian Terrier is clearly visible — mostly white short-haired coat with distinct black saddle patches and tan eyebrow/muzzle markings\n- Folded semi-erect ear tips, lean athletic terrier build\n- Slim red collar with a small brass tag is visible\n- Image matches the scene environment and described action\n- No text overlays, watermarks, real-world brand logos, or unrelated characters\n\nFAIL on any of: missing dog, wrong breed (Jack Russell, fox terrier, beagle), wrong markings, wrong collar color, multiple dogs, off-prompt environment, garbled anatomy, visible trademarked branding."
+  },
+  "archetypes": [
+    {
+      "id": "futebol-pickup",
+      "label": "Pickup Futebol Match",
+      "guidance": "Dusty neighborhood pickup futebol game on a sloped concrete pitch. The terrier crashes in chasing the ball, accidentally becomes MVP through pure tiny-dog chaos, and ends the day getting carried off on someone's shoulders. No real club logos, kits, or sponsor names — generic teams only."
+    },
+    {
+      "id": "carnaval-rookie",
+      "label": "Carnaval Rookie",
+      "guidance": "First Carnaval. He cannot samba. Eight scenes of escalating dance failures in increasingly elaborate (generic) costume — feathers, glitter, sequins. Final scene: he finally hits the rhythm during a sunrise after-party on the street."
+    },
+    {
+      "id": "capybara-feud",
+      "label": "Capybara Pond Feud",
+      "guidance": "Turf war at a city park's pond. The terrier vs. a deeply unbothered capybara who refuses to acknowledge his existence. He escalates dramatically; the capybara remains a slow zen wall. Resolution: they accidentally become roommates."
+    },
+    {
+      "id": "acai-stand-empire",
+      "label": "Açaí Stand Empire",
+      "guidance": "Starts as a thief of a single açaí bowl at a beach kiosk → becomes an unlicensed beach vendor → expands to a fleet of tiny coolers driven by chaos energy. Climax: he's reviewed by a viral food account and goes legit."
+    },
+    {
+      "id": "moto-courier",
+      "label": "Moto Courier",
+      "guidance": "Clings to a motoboy delivery driver weaving through São Paulo traffic with a backpack of food orders. Generic motorbike, no real delivery-app branding. He's somehow always the one customers tip. Bittersweet ending at the last delivery of the night."
+    }
+  ],
+  "caption": {
+    "coreHashtags": [
+      "#brazilianterrier",
+      "#terrierbrasileiro",
+      "#foxpaulistinha",
+      "#dogtok",
+      "#brainrot"
+    ],
+    "moodHashtags": {
+      "funny": ["#dogchaos", "#smalldog", "#dogtok"],
+      "epic": ["#mvp", "#campeao"],
+      "dramatic": ["#dramatic", "#dramaqueen"],
+      "heartwarming": ["#wholesomedog", "#bestboy"],
+      "hopeful": ["#vaivaivai"],
+      "sad": ["#triste"]
+    },
+    "archetypeHashtags": {
+      "futebol-pickup": ["#futebol", "#pickupgame", "#mvp"],
+      "carnaval-rookie": ["#carnaval", "#samba", "#firsttimer"],
+      "capybara-feud": ["#capybara", "#feud", "#parklife"],
+      "acai-stand-empire": ["#acai", "#beachvendor", "#hustleculture"],
+      "moto-courier": ["#motoboy", "#deliverylife", "#saopaulo"]
+    },
+    "archetypeOpenings": {
+      "futebol-pickup": [
+        "POV: tiny dog crashes the pickup game ⚽🐶",
+        "He's 8 kilos and he's the MVP 🏆",
+        "Nobody invited him. He's playing anyway."
+      ],
+      "carnaval-rookie": [
+        "First Carnaval — he cannot samba 🪶✨",
+        "Eight scenes of dance failures 💃🐕",
+        "Sunrise after-party redemption arc 🌅"
+      ],
+      "capybara-feud": [
+        "He picked a fight with a capybara 🐕🆚🦫",
+        "The capybara has not noticed yet 😐",
+        "Park-pond turf war, day 47"
+      ],
+      "acai-stand-empire": [
+        "He stole ONE açaí bowl. Now he's a vendor. 🍇",
+        "Beach-kiosk empire arc unlocked 🏖️",
+        "From thief to legit in 9 scenes"
+      ],
+      "moto-courier": [
+        "POV: clinging to a motoboy through São Paulo 🏍️",
+        "He's the reason you tip generously 🐶",
+        "Last delivery of the night 🌃"
+      ]
+    },
+    "closingCtas": [
+      "Vai vai vai 🐶",
+      "Part 2 next Carnaval 🪶",
+      "Follow for more tiny terror 🐕",
+      "Like if you'd hire him as a motoboy 🏍️"
+    ],
+    "trendingHashtags": [
+      "#fyp",
+      "#foryou",
+      "#viral",
+      "#brasil",
+      "#brazil",
+      "#dogsoftiktok"
+    ]
+  },
+  "musicStyleHint": "Funk carioca and baile-funk-flavored beats, samba percussion breaks, surdo drums, occasional cuíca — energetic and unmistakably Brazilian. Royalty-free style; no song titles or artist names."
+}

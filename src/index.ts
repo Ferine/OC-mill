@@ -4,7 +4,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { readFile } from 'fs/promises';
 import { dirname } from 'path';
-import { OrangeCatAgent } from './agent/OrangeCatAgent';
+import { StoryAgent } from './agent/StoryAgent';
 import { config } from './utils/config';
 import { logger } from './utils/logger';
 import { Story } from './story/types';
@@ -33,13 +33,13 @@ async function checkFfmpeg(): Promise<void> {
  * Main entry point for the OC-mill agent.
  *
  * Usage:
- *   npm start                                       Run once
- *   npm start -- --resume <runDir|latest>           Resume a partial run
- *   npm start -- --dry                              LLM-only dry run
- *   npm start -- --stats                            Show statistics
- *   npm start -- --count N                          Run N times sequentially
- *   npm start -- --loop                             Run continuously
- *   npm start -- --scene N --story-file story.json  Regenerate one scene
+ *   pnpm start                                      Run once
+ *   pnpm start --resume <runDir|latest>             Resume a partial run
+ *   pnpm start --dry                                LLM-only dry run
+ *   pnpm start --stats                              Show statistics
+ *   pnpm start --count N                            Run N times sequentially
+ *   pnpm start --loop                               Run continuously
+ *   pnpm start --scene N --story-file story.json   Regenerate one scene
  */
 
 type Args =
@@ -102,7 +102,7 @@ function parseArgs(): Args {
   return { mode: 'once' };
 }
 
-async function runServer(agent: OrangeCatAgent, port: number): Promise<void> {
+async function runServer(agent: StoryAgent, port: number): Promise<void> {
   const { startServer } = await import('./server/HttpServer');
   await startServer(config, port, agent);
   console.log(`\n🌐 OC-Mill UI:  http://127.0.0.1:${port}`);
@@ -111,7 +111,7 @@ async function runServer(agent: OrangeCatAgent, port: number): Promise<void> {
   await new Promise(() => {});
 }
 
-async function runResume(agent: OrangeCatAgent, target: string): Promise<void> {
+async function runResume(agent: StoryAgent, target: string): Promise<void> {
   let runDir = target;
   if (target === 'latest') {
     const latest = await agent.findLatestRunDir();
@@ -134,13 +134,13 @@ async function runResume(agent: OrangeCatAgent, target: string): Promise<void> {
   } else {
     console.log('\n❌ FAILED!');
     console.log(`Error: ${result.error}`);
-    console.log(`Resume again with: npm start -- --resume ${result.runDir}`);
+    console.log(`Resume again with: pnpm start --resume ${result.runDir}`);
     process.exit(1);
   }
 }
 
 async function runScene(
-  agent: OrangeCatAgent,
+  agent: StoryAgent,
   storyFile: string,
   sceneIndex: number
 ): Promise<void> {
@@ -160,14 +160,14 @@ async function runScene(
 /**
  * Run agent once
  */
-async function runOnce(agent: OrangeCatAgent): Promise<void> {
+async function runOnce(agent: StoryAgent): Promise<void> {
   logger.info('Starting single run');
 
   const result = await agent.runOnce();
 
   if (result.success) {
     logger.info('Run completed successfully', {
-      archetype: result.story.archetype,
+      archetypeId: result.story.archetypeId,
       tiktokUrl: result.tiktokShareUrl,
       duration: `${(result.duration / 1000).toFixed(1)}s`,
     });
@@ -182,7 +182,7 @@ async function runOnce(agent: OrangeCatAgent): Promise<void> {
     logger.error('Run failed', { error: result.error });
     console.log('\n❌ FAILED!');
     console.log(`Error: ${result.error}`);
-    console.log(`Resume with: npm start -- --resume ${result.runDir}`);
+    console.log(`Resume with: pnpm start --resume ${result.runDir}`);
     process.exit(1);
   }
 }
@@ -190,7 +190,7 @@ async function runOnce(agent: OrangeCatAgent): Promise<void> {
 /**
  * Run agent multiple times
  */
-async function runMultiple(agent: OrangeCatAgent, count: number): Promise<void> {
+async function runMultiple(agent: StoryAgent, count: number): Promise<void> {
   logger.info(`Starting ${count} runs`);
 
   const results = await agent.runMultiple(count);
@@ -208,13 +208,13 @@ async function runMultiple(agent: OrangeCatAgent, count: number): Promise<void> 
 /**
  * Run agent in dry mode (LLM stage only)
  */
-async function runDry(agent: OrangeCatAgent): Promise<void> {
+async function runDry(agent: StoryAgent): Promise<void> {
   logger.info('Starting dry run');
 
   const result = await agent.dryRun();
 
   console.log('\n✅ Dry run completed');
-  console.log(`Story archetype: ${result.story.archetype}`);
+  console.log(`Story archetype: ${result.story.archetypeId}`);
   console.log(`Story title: ${result.story.title}`);
   console.log(`Scenes: ${result.story.scenes.length}`);
   console.log(`Caption length: ${result.caption.length} chars`);
@@ -223,7 +223,7 @@ async function runDry(agent: OrangeCatAgent): Promise<void> {
 /**
  * Show statistics
  */
-async function showStats(agent: OrangeCatAgent): Promise<void> {
+async function showStats(agent: StoryAgent): Promise<void> {
   logger.info('Displaying statistics');
 
   const report = agent.getStatisticsReport();
@@ -235,7 +235,7 @@ async function showStats(agent: OrangeCatAgent): Promise<void> {
 /**
  * Run agent in loop mode with scheduling
  */
-async function runLoop(agent: OrangeCatAgent): Promise<void> {
+async function runLoop(agent: StoryAgent): Promise<void> {
   const intervalHours = config.scheduling.runIntervalHours;
   const intervalMs = intervalHours * 60 * 60 * 1000;
 
@@ -282,8 +282,8 @@ async function main(): Promise<void> {
   try {
     // Print banner
     console.log('╔══════════════════════════════════════╗');
-    console.log('║   🐱 OC-MILL - Orange Cat Agent 🐱   ║');
-    console.log('║   Automated AI Cat Story TikToks    ║');
+    console.log('║   OC-mill — Brainrot Studio 🎬       ║');
+    console.log('║   Multi-brand short-form video gen   ║');
     console.log('╚══════════════════════════════════════╝\n');
 
     logger.info('Application starting', {
@@ -296,7 +296,7 @@ async function main(): Promise<void> {
     await checkFfmpeg();
 
     // Initialize agent
-    const agent = new OrangeCatAgent(config);
+    const agent = new StoryAgent(config);
     await agent.initialize();
 
     // Parse arguments and run
@@ -317,7 +317,7 @@ async function main(): Promise<void> {
           '\n⚠️  Interrupted. Outputs persisted to disk are safe to resume:'
         );
         console.error(
-          '   npm start -- --resume latest   (resumes most recent run)'
+          '   pnpm start --resume latest   (resumes most recent run)'
         );
         // Let in-flight network I/O drain briefly, then exit.
         setTimeout(() => process.exit(130), 500);
@@ -383,4 +383,4 @@ if (require.main === module) {
   });
 }
 
-export { OrangeCatAgent, config };
+export { StoryAgent, config };

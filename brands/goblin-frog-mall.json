@@ -1,0 +1,86 @@
+{
+  "id": "goblin-frog-mall",
+  "displayName": "Goblin Frog at the Mall",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "a small green goblin frog who haunts an early-2000s American shopping mall",
+    "storyCharacter": "THE CHARACTER\n- A small green goblin frog, about knee-high to a human, hunched and gremlin-shaped.\n- Oversized white mallrat sneakers, untied laces.\n- A long chain wallet attached to baggy cargo shorts.\n- One missing front tooth, snaggle-tooth grin.\n- ALWAYS carrying a generic soft pretzel from a mall pretzel kiosk, half-eaten.\n- Personality: scheming mallrat energy, fast-talking, obsessed with food-court samples.\n- Same frog, same sneakers, same pretzel in every scene.",
+    "referenceSheet": "Character reference sheet for a recurring TikTok series: a goblin frog mallrat.\n\nPhysical traits — MUST be consistent across every appearance:\n- Small green goblin-shaped frog, hunched stance, gangly limbs, expressive amphibian face\n- Oversized white sneakers with chunky soles, looking comically too big (no brand logo)\n- Baggy cargo shorts with a metal chain wallet hanging visibly\n- One missing front tooth, snaggle grin\n- Holding a half-eaten generic soft pretzel\n\nComposition: full-body neutral studio shot, plain soft-grey background, even cinematic lighting, photorealistic with cartoon-leaning proportions. Vertical 9:16 framing. No text, no logos, no real-world brand names, no other characters.",
+    "sceneContinuity": "The frog MUST stay consistent — same small green goblin frog with oversized white sneakers, chain wallet, missing tooth, and pretzel. Do not invent a new amphibian. Do not put him in dress shoes. Do not remove the pretzel.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A small green goblin frog is clearly visible, hunched and gangly\n- He is wearing oversized white sneakers and baggy cargo shorts with a chain wallet\n- He is holding a half-eaten soft pretzel\n- He has at least one obviously missing front tooth\n- Image matches the scene environment (typically a mall or its surroundings)\n- No text overlays, watermarks, real-world brand logos, or unrelated characters\n\nFAIL on any of: missing frog, normal-looking frog, no sneakers, no pretzel, multiple frogs, off-prompt environment, garbled anatomy, visible trademarked branding."
+  },
+  "archetypes": [
+    {
+      "id": "mall-cop-arc",
+      "label": "Mall Cop Arc",
+      "guidance": "The frog is suspected of pretzel theft and pursued by a beleaguered mall cop. Comedy of escalating evidence — until he buys the pretzel on receipt. Vindication."
+    },
+    {
+      "id": "food-court-glow-up",
+      "label": "Food Court Glow-Up",
+      "guidance": "Sample-stealer → reviewed by a viral foodie account → becomes the unofficial food-court critic with a podcast booth in front of a generic pizza chain."
+    },
+    {
+      "id": "claw-machine-jackpot",
+      "label": "Claw Machine Jackpot",
+      "guidance": "The frog spends his last $5 on a claw machine. Improbable plush-toy payout (generic, no brand). He resells it. Empire begins."
+    },
+    {
+      "id": "novelty-store-saga",
+      "label": "Novelty Store Saga",
+      "guidance": "The frog hides in a mall novelty-and-gag-gift store back room overnight. Lava lamps come to life. He befriends a plasma globe. Bittersweet morning."
+    }
+  ],
+  "caption": {
+    "coreHashtags": [
+      "#goblinfrog",
+      "#mallcore",
+      "#frogtok",
+      "#liminalmall",
+      "#brainrot"
+    ],
+    "moodHashtags": {
+      "funny": ["#mallrat", "#chaos", "#funnyfrog"],
+      "epic": ["#legend", "#empire"],
+      "dramatic": ["#caughtinhd", "#scandal"],
+      "heartwarming": ["#wholesomefrog"],
+      "hopeful": ["#glowup"],
+      "sad": ["#nostalgiacore"]
+    },
+    "archetypeHashtags": {
+      "mall-cop-arc": ["#mallcop", "#caughtinhd", "#pretzelgate"],
+      "food-court-glow-up": ["#foodcourt", "#foodcourt", "#criticarc"],
+      "claw-machine-jackpot": ["#clawmachine", "#plushtoy", "#jackpot"],
+      "novelty-store-saga": ["#noveltystore", "#lavalamp", "#liminalspace"]
+    },
+    "archetypeOpenings": {
+      "mall-cop-arc": [
+        "Pretzel arc loading... 🥨",
+        "POV: the mall cop's been after you for weeks 🚨",
+        "He just wanted to eat 😔"
+      ],
+      "food-court-glow-up": [
+        "Sample stealer turned food critic 🥡",
+        "He's reviewing the food-court pizza chain 🍕",
+        "From shoplifter to celebrity in 6 scenes"
+      ],
+      "claw-machine-jackpot": [
+        "He spent his LAST $5 on this 🎰",
+        "The claw machine finally hit 🐸💰",
+        "Plush-toy resale empire incoming"
+      ],
+      "novelty-store-saga": [
+        "Locked in at the novelty store overnight 🌃",
+        "POV: the lava lamps know your name 🪩",
+        "He found his people at 2am"
+      ]
+    },
+    "closingCtas": [
+      "Pretzel saga continues 🥨",
+      "Part 2 in the novelty store? 👀",
+      "Follow for more mallrat content 🐸",
+      "Like if you'd hide in the novelty store too 🪩"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#liminal", "#nostalgia"]
+  }
+}

@@ -6,6 +6,7 @@ import { EvalService } from '../llm/EvalService';
 import { runWithConcurrency } from '../pipeline/concurrency';
 import { PipelineEventBus } from '../pipeline/events';
 import { Story, Scene } from '../story/types';
+import { Brand } from '../brand/types';
 import { atomicWrite, isCachedFile, readJson } from '../utils/io';
 import { logger } from '../utils/logger';
 
@@ -54,6 +55,7 @@ export class ImageService {
    * for the next attempt so the model can correct the specific issue.
    */
   public async generateKeyframe(opts: {
+    brand: Brand;
     story: Story;
     scene: Scene;
     sceneIndex: number;
@@ -106,9 +108,10 @@ export class ImageService {
       }
     }
 
-    const characterRef = await this.characterCache.getReference(
-      opts.story.archetype
-    );
+    const characterRef = await this.characterCache.getReference({
+      brand: opts.brand,
+      archetypeId: opts.story.archetypeId,
+    });
 
     let attempt = 0;
     let feedback: string | undefined;
@@ -121,7 +124,7 @@ export class ImageService {
         sceneIndex: opts.sceneIndex,
         attempt,
       });
-      const prompt = this.buildKeyframePrompt(opts.scene, feedback);
+      const prompt = this.buildKeyframePrompt(opts.brand, opts.scene, feedback);
 
       const buffer = await this.client.generate({
         model: this.model,
@@ -168,6 +171,7 @@ export class ImageService {
       }
 
       const evalResult = await this.evalService.evaluateKeyframe({
+        brand: opts.brand,
         image: buffer,
         scene: opts.scene,
       });
@@ -237,12 +241,14 @@ export class ImageService {
   }
 
   public async generateAllKeyframes(opts: {
+    brand: Brand;
     story: Story;
     outputDir: string;
     concurrency: number;
     events?: PipelineEventBus;
   }): Promise<SceneKeyframeResult[]> {
     logger.info('Generating keyframes for all scenes', {
+      brandId: opts.brand.id,
       sceneCount: opts.story.scenes.length,
       outputDir: opts.outputDir,
       concurrency: opts.concurrency,
@@ -253,6 +259,7 @@ export class ImageService {
     const tasks = opts.story.scenes.map(
       (scene, sceneIndex) => () =>
         this.generateKeyframe({
+          brand: opts.brand,
           story: opts.story,
           scene,
           sceneIndex,
@@ -263,16 +270,20 @@ export class ImageService {
     return runWithConcurrency(tasks, opts.concurrency);
   }
 
-  private buildKeyframePrompt(scene: Scene, feedback?: string): string {
+  private buildKeyframePrompt(
+    brand: Brand,
+    scene: Scene,
+    feedback?: string
+  ): string {
     const base = `Vertical 9:16 TikTok keyframe, cinematic photorealistic style.
 
 Scene description: ${scene.description}
 Environment: ${scene.environment}
-Cat action and pose: ${scene.catAction}
+Character action and pose: ${scene.catAction}
 Camera framing: ${scene.cameraMotion}
 Mood: ${scene.mood}
 
-CRITICAL: The cat MUST match the provided reference image exactly — same chubby orange tabby, same fur pattern, same eyes, same body shape. Do not invent a new cat. Maintain perfect character continuity.
+CRITICAL: ${brand.prompts.sceneContinuity}
 
 No text overlays, no captions, no UI, no other animals or humans unless the scene description requires them. High detail, professional lighting.`;
 

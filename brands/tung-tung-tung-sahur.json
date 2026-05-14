@@ -1,0 +1,86 @@
+{
+  "id": "tung-tung-tung-sahur",
+  "displayName": "Tung Tung Tung Sahur",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "Tung Tung Tung Sahur, an anthropomorphic wooden log who carries a wooden bat and announces the dawn",
+    "storyCharacter": "THE CHARACTER\n- A short, thick wooden log with stubby wooden arms and legs.\n- One eye in the middle of the log, drawn-on style, perpetually alert.\n- A small wooden top-hat or kentungan marker on his head (optional but recurring).\n- Always carries a wooden bat, gripped like a percussion mallet.\n- Personality: solemn, dutiful, on a mission. Speaks in rhythmic onomatopoeia: 'tung, tung, tung'.\n- Same log proportions, same bat, same single eye in every scene.",
+    "referenceSheet": "Character reference sheet for a recurring brainrot TikTok series: Tung Tung Tung Sahur.\n\nPhysical traits — MUST be consistent across every appearance:\n- A short, thick log of polished brown wood with visible grain and bark patches\n- Stubby wooden arms and legs, exaggerated cartoon proportions\n- ONE wide cartoon eye in the middle of the log, no other facial features\n- Carries a smaller wooden bat at all times\n- Indonesian-folk-meets-AI-meme aesthetic, slightly uncanny but endearing\n\nComposition: full-body neutral studio shot, plain soft-grey background, even cinematic lighting, vertical 9:16 framing. No text, no other characters.",
+    "sceneContinuity": "The character MUST stay consistent — same brown wooden log with one cartoon eye and the wooden bat. Do not give him two eyes. Do not turn him into a person. Do not change the bat for any other prop.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A short anthropomorphic wooden log with one eye is clearly visible\n- He is carrying a wooden bat\n- Has visible wood grain, stubby wooden limbs\n- Image matches the scene environment / mood\n- No text overlays, watermarks, or unrelated characters\n\nFAIL on any of: missing log, human face, two eyes, no bat, multiple logs, off-prompt environment, garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "predawn-rounds",
+      "label": "Predawn Rounds",
+      "guidance": "Tung patrols a sleeping village before dawn, banging on doors to wake everyone for sahur. Each door reveals a different surreal brainrot creature. Comedic timing."
+    },
+    {
+      "id": "rhythm-section",
+      "label": "Rhythm Section",
+      "guidance": "Tung is recruited by a band as their percussionist. He only plays one note. It is somehow exactly the right note."
+    },
+    {
+      "id": "lost-bat",
+      "label": "The Lost Bat",
+      "guidance": "Tung loses his wooden bat. Quest through increasingly absurd locations to recover it. He finds it being used as a chopstick by Tralalero (no name-drop in caption)."
+    },
+    {
+      "id": "alarm-clock-throne",
+      "label": "Alarm Clock Throne",
+      "guidance": "Tung is crowned king of all alarm clocks. Heavy is the head that wears the wooden hat. Sleep-deprivation-themed dramedy."
+    }
+  ],
+  "caption": {
+    "coreHashtags": [
+      "#tungtungtungsahur",
+      "#italianbrainrot",
+      "#brainrot",
+      "#aimemes",
+      "#sahur"
+    ],
+    "moodHashtags": {
+      "funny": ["#funny", "#absurd", "#chaos"],
+      "epic": ["#epic", "#legend"],
+      "dramatic": ["#dramatic", "#quest"],
+      "heartwarming": ["#wholesome"],
+      "hopeful": ["#dawn"],
+      "sad": ["#tired"]
+    },
+    "archetypeHashtags": {
+      "predawn-rounds": ["#sahurvibes", "#predawn", "#wakeup"],
+      "rhythm-section": ["#drums", "#oneNoteWonder", "#band"],
+      "lost-bat": ["#quest", "#brainrotsaga"],
+      "alarm-clock-throne": ["#king", "#nosleep"]
+    },
+    "archetypeOpenings": {
+      "predawn-rounds": [
+        "Tung Tung Tung at 4am 🪵🥁",
+        "He's at your door whether you like it or not",
+        "Sahur duty starts NOW 🌙"
+      ],
+      "rhythm-section": [
+        "He only plays one note 🪵",
+        "Band auditions got weird today",
+        "The percussion section just got promoted"
+      ],
+      "lost-bat": [
+        "He lost the bat. He LOST the bat. 🪵💔",
+        "Quest mode activated 🗺️",
+        "Where is it? WHERE 😭"
+      ],
+      "alarm-clock-throne": [
+        "Crowned king of the alarm clocks 👑⏰",
+        "Heavy is the wooden head 🪵",
+        "No sleep for the dutiful"
+      ]
+    },
+    "closingCtas": [
+      "Tung tung tung... 🪵",
+      "Part 2 at dawn 🌅",
+      "Follow for more sahur energy",
+      "Like if he woke you up too 😤"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#tiktoktrending"]
+  }
+}

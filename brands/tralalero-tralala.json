@@ -1,0 +1,86 @@
+{
+  "id": "tralalero-tralala",
+  "displayName": "Tralalero Tralala",
+  "version": 1,
+  "prompts": {
+    "storySystemFlavor": "Tralalero Tralala, a surreal three-legged shark who wears bright blue chunky sneakers (generic, no brand logo)",
+    "storyCharacter": "THE CHARACTER\n- A three-legged great white shark, glossy grey skin, surreal AI-meme aesthetic.\n- Wears bright bright blue chunky sneakers (generic, no brand logo) on all three legs.\n- Walks upright with a confident, wobbly swagger.\n- Personality: chaotic-good drunk-sea-shanty energy, sings nonsense onomatopoeia under his breath, vibes hard.\n- The same shark must appear in every scene — same three legs, same blue chunky sneakers, same toothy grin.",
+    "referenceSheet": "Character reference sheet for a recurring brainrot TikTok series: a three-legged great white shark.\n\nPhysical traits — MUST be consistent in every appearance:\n- Great white shark, glossy grey body, white belly, prominent teeth, slightly oversized head\n- Exactly THREE legs, each ending in a bright blue chunky sneaker (the same model, same shade, no brand logo)\n- Stands upright like a person, slightly awkward stance\n- Surreal Italian-brainrot AI-generated look — uncanny but charming, not horror\n\nComposition: full-body neutral studio shot, plain soft-grey background, even cinematic lighting, photorealistic but slightly off in the meme way. Vertical 9:16 framing. No text, no real-world brand logos, no other characters.",
+    "sceneContinuity": "The shark MUST stay consistent — same three-legged great white in bright blue chunky sneakers (generic, no brand logo), same swagger, same toothy grin. Do not invent a new creature, do not give it four legs, do not change shoe color.",
+    "evalCriteria": "PASS criteria — ALL must hold:\n- A three-legged great white shark is clearly visible\n- The shark is wearing bright blue chunky sneakers (generic, no brand logo) on each leg\n- It is upright and stands like a person\n- Image matches the scene environment / mood\n- No text overlays, watermarks, or unrelated characters\n\nFAIL on any of: missing shark, normal four-legged or finned shark, wrong shoe color, multiple sharks, off-prompt environment, garbled anatomy."
+  },
+  "archetypes": [
+    {
+      "id": "drunken-shanty",
+      "label": "Drunken Sea Shanty",
+      "guidance": "Tralalero stumbles through a misadventure on the docks while singing nonsense onomatopoeia. Mishap → bigger mishap → improbable triumph."
+    },
+    {
+      "id": "sneaker-drop-day",
+      "label": "Sneaker Drop Day",
+      "guidance": "Tralalero queues at a sneaker drop for a new model — chaos ensues with other brainrot creatures cutting the line. Resolves with a smug rescue of the freshest pair."
+    },
+    {
+      "id": "lifeguard-arc",
+      "label": "Lifeguard Arc",
+      "guidance": "Tralalero is given a whistle and a swimsuit and put in charge of the beach. The ocean rebels. He saves the day, badly."
+    },
+    {
+      "id": "italian-cafe-meltdown",
+      "label": "Italian Café Meltdown",
+      "guidance": "Tralalero opens a tiny espresso bar and feuds with Ballerina Cappuccina (without naming her). The latte art is unspeakable."
+    }
+  ],
+  "caption": {
+    "coreHashtags": [
+      "#tralalerotralala",
+      "#italianbrainrot",
+      "#brainrot",
+      "#aimemes",
+      "#shark"
+    ],
+    "moodHashtags": {
+      "funny": ["#funnyshark", "#absurd", "#chaos"],
+      "epic": ["#epicshark", "#legend"],
+      "dramatic": ["#dramatic", "#shookt"],
+      "heartwarming": ["#wholesomechaos"],
+      "hopeful": ["#sharkgotthis"],
+      "sad": ["#sharktears"]
+    },
+    "archetypeHashtags": {
+      "drunken-shanty": ["#seashanty", "#shantytok"],
+      "sneaker-drop-day": ["#sneakerhead", "#droplist", "#sneakers"],
+      "lifeguard-arc": ["#lifeguard", "#beachtok"],
+      "italian-cafe-meltdown": ["#cafe", "#espresso", "#latteart"]
+    },
+    "archetypeOpenings": {
+      "drunken-shanty": [
+        "Tralalero just discovered the docks 🦈🍷",
+        "Three legs, blue chunky sneakers, zero balance 🎶",
+        "Drunken shanty energy at 6am ⚓"
+      ],
+      "sneaker-drop-day": [
+        "He waited 14 hours for these kicks 👟",
+        "Sneaker drop day with a three-legged shark? 😤",
+        "Lining up for the drop, again 🦈"
+      ],
+      "lifeguard-arc": [
+        "Letting a shark be the lifeguard 🏖️",
+        "POV: the ocean is now his enemy 🌊",
+        "Tralalero's first day on the job 🚨"
+      ],
+      "italian-cafe-meltdown": [
+        "He opened an espresso bar ☕",
+        "The latte art is criminal ☕😭",
+        "Tralalero vs. the cappuccina 🥊"
+      ]
+    },
+    "closingCtas": [
+      "Tralalero saga continues 🦈",
+      "Part 2 dropping soon 👟",
+      "Follow for more brainrot 🧠",
+      "Like if you'd lifeguard with him 🏖️"
+    ],
+    "trendingHashtags": ["#fyp", "#foryou", "#viral", "#tiktoktrending"]
+  }
+}

@@ -1,7 +1,3 @@
-/**
- * Story and scene type definitions for the orange cat agent.
- */
-
 export type Mood =
   | 'sad'
   | 'hopeful'
@@ -9,14 +5,6 @@ export type Mood =
   | 'dramatic'
   | 'heartwarming'
   | 'epic';
-
-export type ArchetypeName =
-  | 'RagsToRiches'
-  | 'FromShelterToHome'
-  | 'StreamerCatGlowUp'
-  | 'VillainArcButSoft'
-  | 'ChonkToBestFriend'
-  | 'OfficeHeroJourney';
 
 export interface Scene {
   description: string;
@@ -29,7 +17,8 @@ export interface Scene {
 }
 
 export interface Story {
-  archetype: ArchetypeName;
+  brandId: string;
+  archetypeId: string;
   title: string;
   narrative: string;
   totalDurationSeconds: number;
